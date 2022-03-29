@@ -28,11 +28,17 @@ const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API p
 const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
 const crypto = require("crypto");
 
-let d = new Date();
-
-const CASH_REFILL_DATE = new Date(
-  `${d.getYear()}-${d.getMonth() + 1}-${DATE_OF_CASH_REFILL}`
+let now = new Date();
+let nextFiatDropDate = new Date(
+  `${now.getFullYear()}-${now.getMonth() + 1}-${DATE_OF_CASH_REFILL}`
 );
+if (nextFiatDropDate < now) {
+  nextFiatDropDate.setDate(1); //Needed because later used 'setMonth' has a weird implementation logic.
+  nextFiatDropDate.setMonth(nextFiatDropDate.getMonth() + 1);
+  nextFiatDropDate.setDate(DATE_OF_CASH_REFILL + 1); // We add 1 to make sure we don't run out of fiat in the end. This will set the date right to the start of the next day.
+}
+
+const millisUntilNextFiatDrop = nextFiatDropDate - now;
 
 const Main = async () => {
   try {
@@ -49,10 +55,10 @@ const Main = async () => {
     console.log("DCA activated now!");
 
     if (1 == 1) {
-      let btcchfPrice = (
+      let btcFiatPrice = (
         await QueryPublicEndpoint("Ticker", `pair=xbt${CURRENCY.toLowerCase()}`)
       ).result[`XBT${CURRENCY}`].p[0];
-      console.log(`BTC-Price: ${btcchfPrice}`);
+      console.log(`BTC-Price: ${btcFiatPrice}`);
 
       let privateEndpoint = "Balance";
       let privateInputParameters = "";
@@ -66,9 +72,11 @@ const Main = async () => {
         )
       ).result;
 
-      const CHFleft = privateResponse[CURRENCY];
+      const fiatAmount = privateResponse[CURRENCY];
 
-      console.log("Current Price:", CHFleft);
+      const fiatValueInBtc = btcFiatPrice / fiatAmount;
+
+      console.log("Current Price:", fiatAmount);
     }
 
     /*
