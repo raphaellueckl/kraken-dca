@@ -161,6 +161,7 @@ const main = async () => {
       });
 
     while (true) {
+      console.log("--------------------");
       // executeBuyOrder();
 
       let btcFiatPrice = (
@@ -193,17 +194,26 @@ const main = async () => {
 
       const millisUntilNextFiatDrop = nextFiatDropDate - now;
       const fiatAmount = balance[CURRENCY];
-      const myFiatValueInBtc = btcFiatPrice / fiatAmount;
+      const myFiatValueInBtc = +fiatAmount / +btcFiatPrice;
       const approximatedAmoutOfOrdersUntilFiatRefill =
         myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
-      const timeUntilNextOrderExecuted =
-        millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
-      const exactTimeDelayUntilNextOrder = now + timeUntilNextOrderExecuted;
+      let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
+      if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
+        timeUntilNextOrderExecuted =
+          millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
 
-      console.log("Current Price:", fiatAmount);
-      console.log("Delay:", exactTimeDelayUntilNextOrder);
-      //await timer(exactTimeDelayUntilNextOrder);
-      await timer(5000);
+        console.log("Leftover Fiat:", fiatAmount);
+        console.log(
+          "Next Buy Order:",
+          new Date(now.getTime() + timeUntilNextOrderExecuted)
+        );
+      } else {
+        console.log(
+          new Date().toLocaleString(),
+          "Out of fiat money! Checking again in one hour..."
+        );
+      }
+      await timer(timeUntilNextOrderExecuted);
     }
 
     // console.log("|=======================================|");
