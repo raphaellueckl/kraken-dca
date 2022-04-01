@@ -19,129 +19,129 @@
  * - Leave the script running for as long as you want to keep buying as often as possible. :)
  */
 
-const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL) || 26; // Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
-const CURRENCY = process.env.CURRENCY || "CHF"; // Swiss Francs for me. Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
-const KRAKEN_MIN_BTC_ORDER_SIZE = 0.0001; // Kraken currently has a minimum order size of 0.0001 BTC. Can be changed, but should be the standard for the next few years I think.
+const main = async () => {
+  const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL) || 26; // Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
+  const CURRENCY = process.env.CURRENCY || "CHF"; // Swiss Francs for me. Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
+  const KRAKEN_MIN_BTC_ORDER_SIZE = 0.0001; // Kraken currently has a minimum order size of 0.0001 BTC. Can be changed, but should be the standard for the next few years I think.
 
-const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API public key
-const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
-const crypto = require("crypto");
-const https = require("https");
+  const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API public key
+  const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
+  const crypto = require("crypto");
+  const https = require("https");
 
-const isWeekend = (date) => date.getDay() % 6 == 0;
+  const isWeekend = (date) => date.getDay() % 6 == 0;
 
-const publicApiPath = "/0/public/";
-const privateApiPath = "/0/private/";
+  const publicApiPath = "/0/public/";
+  const privateApiPath = "/0/private/";
 
-const getRequest = async (options) => {
-  const data = await new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (d) => {
-        data += d;
+  const getRequest = async (options) => {
+    const data = await new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let data = "";
+        res.on("data", (d) => {
+          data += d;
+        });
+        res.on("end", () => {
+          resolve(data);
+        });
       });
-      res.on("end", () => {
-        resolve(data);
+
+      req.on("error", (error) => {
+        console.error(error);
       });
+      req.end();
     });
 
-    req.on("error", (error) => {
-      console.error(error);
-    });
-    req.end();
-  });
-
-  return data;
-};
-
-const queryPublicApi = async (endPointName, inputParameters) => {
-  const options = {
-    hostname: "api.kraken.com",
-    port: 443,
-    path: `${publicApiPath}${endPointName}?${inputParameters || ""}`,
-    method: "GET",
+    return data;
   };
 
-  const data = await getRequest(options);
-
-  return JSON.parse(data);
-};
-
-async function QueryPrivateEndpoint(endpoint, params) {
-  const nonce = Date.now().toString();
-  const apiPostBodyData = "nonce=" + nonce + "&" + params;
-
-  const signature = CreateAuthenticationSignature(
-    KRAKEN_API_PRIVATE_KEY,
-    privateApiPath,
-    endpoint,
-    nonce,
-    apiPostBodyData
-  );
-
-  const result = await new Promise((resolve, reject) => {
-    const body = apiPostBodyData;
+  const queryPublicApi = async (endPointName, inputParameters) => {
     const options = {
       hostname: "api.kraken.com",
       port: 443,
-      path: `${privateApiPath}${endpoint}${params ? `?${params}` : ""}`,
-      method: "POST",
-      headers: { "API-Key": KRAKEN_API_PUBLIC_KEY, "API-Sign": signature },
+      path: `${publicApiPath}${endPointName}?${inputParameters || ""}`,
+      method: "GET",
     };
 
-    const req = https.request(options, (res) => {
-      let data = "";
+    const data = await getRequest(options);
 
-      res.on("data", (d) => {
-        data += d;
+    return JSON.parse(data);
+  };
+
+  async function QueryPrivateEndpoint(endpoint, params) {
+    const nonce = Date.now().toString();
+    const apiPostBodyData = "nonce=" + nonce + "&" + params;
+
+    const signature = CreateAuthenticationSignature(
+      KRAKEN_API_PRIVATE_KEY,
+      privateApiPath,
+      endpoint,
+      nonce,
+      apiPostBodyData
+    );
+
+    const result = await new Promise((resolve, reject) => {
+      const body = apiPostBodyData;
+      const options = {
+        hostname: "api.kraken.com",
+        port: 443,
+        path: `${privateApiPath}${endpoint}${params ? `?${params}` : ""}`,
+        method: "POST",
+        headers: { "API-Key": KRAKEN_API_PUBLIC_KEY, "API-Sign": signature },
+      };
+
+      const req = https.request(options, (res) => {
+        let data = "";
+
+        res.on("data", (d) => {
+          data += d;
+        });
+
+        res.on("end", () => {
+          resolve(data);
+        });
       });
 
-      res.on("end", () => {
-        resolve(data);
+      req.on("error", (error) => {
+        console.error("error happened", error);
       });
+
+      req.write(body);
+      req.end();
     });
 
-    req.on("error", (error) => {
-      console.error("error happened", error);
-    });
+    return JSON.parse(result);
+  }
 
-    req.write(body);
-    req.end();
-  });
+  function CreateAuthenticationSignature(
+    apiPrivateKey,
+    apiPath,
+    endPointName,
+    nonce,
+    apiPostBodyData
+  ) {
+    const apiPost = nonce + apiPostBodyData;
+    const secret = Buffer.from(apiPrivateKey, "base64");
+    const sha256 = crypto.createHash("sha256");
+    const hash256 = sha256.update(apiPost).digest("binary");
+    const hmac512 = crypto.createHmac("sha512", secret);
+    const signatureString = hmac512
+      .update(apiPath + endPointName + hash256, "binary")
+      .digest("base64");
+    return signatureString;
+  }
 
-  return JSON.parse(result);
-}
+  const executeBuyOrder = async () => {
+    let privateEndpoint = "AddOrder";
+    let privateInputParameters = `pair=xbtchf&type=buy&ordertype=market&volume=${KRAKEN_MIN_BTC_ORDER_SIZE}`;
+    let privateResponse = "";
+    privateResponse = await QueryPrivateEndpoint(
+      privateEndpoint,
+      privateInputParameters
+    );
+    console.log(privateResponse);
+  };
 
-function CreateAuthenticationSignature(
-  apiPrivateKey,
-  apiPath,
-  endPointName,
-  nonce,
-  apiPostBodyData
-) {
-  const apiPost = nonce + apiPostBodyData;
-  const secret = Buffer.from(apiPrivateKey, "base64");
-  const sha256 = crypto.createHash("sha256");
-  const hash256 = sha256.update(apiPost).digest("binary");
-  const hmac512 = crypto.createHmac("sha512", secret);
-  const signatureString = hmac512
-    .update(apiPath + endPointName + hash256, "binary")
-    .digest("base64");
-  return signatureString;
-}
-
-const executeBuyOrder = async () => {
-  let privateEndpoint = "AddOrder";
-  let privateInputParameters = `pair=xbtchf&type=buy&ordertype=market&volume=${KRAKEN_MIN_BTC_ORDER_SIZE}`;
-  let privateResponse = "";
-  privateResponse = await QueryPrivateEndpoint(
-    privateEndpoint,
-    privateInputParameters
-  );
-  console.log(privateResponse);
-};
-
-const Main = async () => {
   try {
     console.log("|=========================================|");
     console.log("|            ------------------           |");
@@ -155,7 +155,12 @@ const Main = async () => {
     console.log();
     console.log("DCA activated now!");
 
-    const runCycle = async () => {
+    const timer = (delay) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, delay);
+      });
+
+    while (true) {
       // executeBuyOrder();
 
       let btcFiatPrice = (
@@ -196,11 +201,10 @@ const Main = async () => {
       const exactTimeDelayUntilNextOrder = now + timeUntilNextOrderExecuted;
 
       console.log("Current Price:", fiatAmount);
-
-      setTimeout(runCycle, exactTimeDelayUntilNextOrder);
-    };
-
-    runCycle();
+      console.log("Delay:", exactTimeDelayUntilNextOrder);
+      //await timer(exactTimeDelayUntilNextOrder);
+      await timer(5000);
+    }
 
     // console.log("|=======================================|");
     // console.log("|             DCA stopped!              |");
@@ -212,4 +216,4 @@ const Main = async () => {
   }
 };
 
-Main();
+main();
