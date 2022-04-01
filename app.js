@@ -52,7 +52,7 @@ const getRequest = async (options) => {
   });
 
   return data;
-}
+};
 
 const queryPublicApi = async (endPointName, inputParameters) => {
   const options = {
@@ -65,12 +65,9 @@ const queryPublicApi = async (endPointName, inputParameters) => {
   const data = await getRequest(options);
 
   return JSON.parse(data);
-}
+};
 
-async function QueryPrivateEndpoint(
-  endpoint,
-  params,
-) {
+async function QueryPrivateEndpoint(endpoint, params) {
   const nonce = Date.now().toString();
   const apiPostBodyData = "nonce=" + nonce + "&" + params;
 
@@ -87,14 +84,11 @@ async function QueryPrivateEndpoint(
     const options = {
       hostname: "api.kraken.com",
       port: 443,
-      path: `${privateApiPath}${endpoint}${
-        params ? `?${params}` : ""
-      }`,
+      path: `${privateApiPath}${endpoint}${params ? `?${params}` : ""}`,
       method: "POST",
       headers: { "API-Key": KRAKEN_API_PUBLIC_KEY, "API-Sign": signature },
     };
 
-    
     const req = https.request(options, (res) => {
       let data = "";
 
@@ -138,15 +132,14 @@ function CreateAuthenticationSignature(
 
 const executeBuyOrder = async () => {
   let privateEndpoint = "AddOrder";
-  let privateInputParameters =
-    `pair=xbtchf&type=buy&ordertype=market&volume=${KRAKEN_MIN_BTC_ORDER_SIZE}` ;
+  let privateInputParameters = `pair=xbtchf&type=buy&ordertype=market&volume=${KRAKEN_MIN_BTC_ORDER_SIZE}`;
   let privateResponse = "";
   privateResponse = await QueryPrivateEndpoint(
     privateEndpoint,
-    privateInputParameters,
+    privateInputParameters
   );
   console.log(privateResponse);
-}
+};
 
 const Main = async () => {
   try {
@@ -174,10 +167,7 @@ const Main = async () => {
       let privateInputParameters = "";
 
       const balance = (
-        await QueryPrivateEndpoint(
-          privateEndpoint,
-          privateInputParameters,
-        )
+        await QueryPrivateEndpoint(privateEndpoint, privateInputParameters)
       ).result;
 
       const now = new Date();
@@ -189,22 +179,26 @@ const Main = async () => {
         nextFiatDropDate.setMonth(nextFiatDropDate.getMonth() + 1);
         nextFiatDropDate.setDate(DATE_OF_CASH_REFILL + 1); // We add 1 to make sure we don't run out of fiat in the end. This will set the date right to the start of the next day.
       }
-      
-      if (isWeekend(nextFiatDropDate)) nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1)
+
+      if (isWeekend(nextFiatDropDate))
+        nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1);
       // If first time was SA, next day will be SU, so we have to repeat the check.
-      if (isWeekend(nextFiatDropDate)) nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1)
-      
+      if (isWeekend(nextFiatDropDate))
+        nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1);
+
       const millisUntilNextFiatDrop = nextFiatDropDate - now;
       const fiatAmount = balance[CURRENCY];
       const myFiatValueInBtc = btcFiatPrice / fiatAmount;
-      const approximatedAmoutOfOrdersUntilFiatRefill = myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
-      const timeUntilNextOrderExecuted = millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
+      const approximatedAmoutOfOrdersUntilFiatRefill =
+        myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
+      const timeUntilNextOrderExecuted =
+        millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
       const exactTimeDelayUntilNextOrder = now + timeUntilNextOrderExecuted;
 
       console.log("Current Price:", fiatAmount);
 
       setTimeout(runCycle, exactTimeDelayUntilNextOrder);
-    }
+    };
 
     runCycle();
 
