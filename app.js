@@ -26,6 +26,7 @@ const main = async () => {
 
   const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API public key
   const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
+  const SHOW_BTC_VALUE = process.env.SHOW_BTC_VALUE || false; // Print amount of BTC to the console after each buy order
   const crypto = require("crypto");
   const https = require("https");
 
@@ -68,11 +69,11 @@ const main = async () => {
     return JSON.parse(data);
   };
 
-  async function QueryPrivateEndpoint(endpoint, params) {
+  const queryPrivateApi = async (endpoint, params) => {
     const nonce = Date.now().toString();
     const apiPostBodyData = "nonce=" + nonce + "&" + params;
 
-    const signature = CreateAuthenticationSignature(
+    const signature = createAuthenticationSignature(
       KRAKEN_API_PRIVATE_KEY,
       privateApiPath,
       endpoint,
@@ -111,9 +112,9 @@ const main = async () => {
     });
 
     return JSON.parse(result);
-  }
+  };
 
-  function CreateAuthenticationSignature(
+  function createAuthenticationSignature(
     apiPrivateKey,
     apiPath,
     endPointName,
@@ -135,7 +136,7 @@ const main = async () => {
     let privateEndpoint = "AddOrder";
     let privateInputParameters = `pair=xbtchf&type=buy&ordertype=market&volume=${KRAKEN_MIN_BTC_ORDER_SIZE}`;
     let privateResponse = "";
-    privateResponse = await QueryPrivateEndpoint(
+    privateResponse = await queryPrivateApi(
       privateEndpoint,
       privateInputParameters
     );
@@ -162,7 +163,6 @@ const main = async () => {
 
     while (true) {
       console.log("--------------------");
-      // executeBuyOrder();
 
       let btcFiatPrice = (
         await queryPublicApi("Ticker", `pair=xbt${CURRENCY.toLowerCase()}`)
@@ -173,7 +173,7 @@ const main = async () => {
       let privateInputParameters = "";
 
       const balance = (
-        await QueryPrivateEndpoint(privateEndpoint, privateInputParameters)
+        await queryPrivateApi(privateEndpoint, privateInputParameters)
       ).result;
 
       const now = new Date();
@@ -198,7 +198,7 @@ const main = async () => {
       const approximatedAmoutOfOrdersUntilFiatRefill =
         myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
       let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
-      if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
+      if (approximatedAmoutOfOrdersUntilFiatRefill >= 2) {
         timeUntilNextOrderExecuted =
           millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
 
@@ -207,7 +207,11 @@ const main = async () => {
           "Next Buy Order:",
           new Date(now.getTime() + timeUntilNextOrderExecuted)
         );
+        // executeBuyOrder();
       } else {
+        if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
+          // executeBuyOrder();
+        }
         console.log(
           new Date().toLocaleString(),
           "Out of fiat money! Checking again in one hour..."
