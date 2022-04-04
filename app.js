@@ -170,14 +170,6 @@ const main = async () => {
 
     while (true) {
       console.log("--------------------");
-      console.log(
-        (
-          await queryPublicApi(
-            "Ticker",
-            `pair=${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`
-          )
-        ).result
-      );
 
       let btcFiatPrice = (
         await queryPublicApi(
@@ -187,7 +179,7 @@ const main = async () => {
       ).result[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0];
 
       if (!btcFiatPrice) throw new Error("Probably invalid currency symbol!");
-      console.log(`BTC-Price: ${btcFiatPrice}`);
+      console.log(`BTC-Price: ${btcFiatPrice} ${CURRENCY}`);
 
       let privateEndpoint = "Balance";
       let privateInputParameters = "";
@@ -214,12 +206,14 @@ const main = async () => {
 
       const millisUntilNextFiatDrop = nextFiatDropDate - now;
       const fiatAmount = balance[fiatPrefix + CURRENCY];
+      const btcAmount = balance.XXBT;
       const myFiatValueInBtc = +fiatAmount / +btcFiatPrice;
       const approximatedAmoutOfOrdersUntilFiatRefill =
         myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
       let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
 
       console.log(`Leftover Fiat: ${fiatAmount} ${CURRENCY}`);
+      if (SHOW_BTC_VALUE) console.log(`Accumulated Bitcoin: ${btcAmount} ₿`);
 
       if (approximatedAmoutOfOrdersUntilFiatRefill >= 2) {
         timeUntilNextOrderExecuted =
