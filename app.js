@@ -21,7 +21,7 @@
 
 const main = async () => {
   const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL) || 26; // Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
-  const CURRENCY = process.env.CURRENCY || "CHF"; // Swiss Francs for me. Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
+  const CURRENCY = process.env.CURRENCY || "USD"; // Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
   const KRAKEN_MIN_BTC_ORDER_SIZE = 0.0001; // Kraken currently has a minimum order size of 0.0001 BTC. Can be changed, but should be the standard for the next few years I think.
 
   const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API public key
@@ -34,6 +34,13 @@ const main = async () => {
 
   const publicApiPath = "/0/public/";
   const privateApiPath = "/0/private/";
+
+  let cryptoPrefix = "";
+  let fiatPrefix = "";
+  if (CURRENCY === "USD" || CURRENCY === "EUR") {
+    cryptoPrefix = "X";
+    fiatPrefix = "Z";
+  }
 
   const getRequest = async (options) => {
     const data = await new Promise((resolve, reject) => {
@@ -163,10 +170,24 @@ const main = async () => {
 
     while (true) {
       console.log("--------------------");
+      console.log(
+        (
+          await queryPublicApi(
+            "Ticker",
+            `pair=${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`
+          )
+        ).result
+      );
 
+      console.log("asd", `${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`);
       let btcFiatPrice = (
-        await queryPublicApi("Ticker", `pair=xbt${CURRENCY.toLowerCase()}`)
-      ).result[`XBT${CURRENCY}`].p[0];
+        await queryPublicApi(
+          "Ticker",
+          `pair=${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`
+        )
+      ).result[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0];
+
+      if (!btcFiatPrice) throw new Error("Probably invalid currency symbol!");
       console.log(`BTC-Price: ${btcFiatPrice}`);
 
       let privateEndpoint = "Balance";
@@ -193,16 +214,18 @@ const main = async () => {
         nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1);
 
       const millisUntilNextFiatDrop = nextFiatDropDate - now;
-      const fiatAmount = balance[CURRENCY];
+      const fiatAmount = balance[fiatPrefix + CURRENCY];
       const myFiatValueInBtc = +fiatAmount / +btcFiatPrice;
       const approximatedAmoutOfOrdersUntilFiatRefill =
         myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
       let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
+
+      console.log(`Leftover Fiat: ${fiatAmount} ${CURRENCY}`);
+
       if (approximatedAmoutOfOrdersUntilFiatRefill >= 2) {
         timeUntilNextOrderExecuted =
           millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
 
-        console.log("Leftover Fiat:", fiatAmount);
         console.log(
           "Next Buy Order:",
           new Date(now.getTime() + timeUntilNextOrderExecuted)
