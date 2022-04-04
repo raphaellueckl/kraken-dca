@@ -151,15 +151,30 @@ const main = async () => {
   };
 
   try {
-    console.log("|=========================================|");
-    console.log("|            ------------------           |");
-    console.log("|            |   Kraken DCA   |           |");
-    console.log("|            ------------------           |");
-    console.log("|               by @codepleb              |");
-    console.log("|                                         |");
-    console.log("| Donations BTC:                          |");
-    console.log("| Donations Lightning BTC:                |");
-    console.log("|=========================================|");
+    console.log(
+      "|===========================================================|"
+    );
+    console.log(
+      "|                     ------------------                    |"
+    );
+    console.log(
+      "|                     |   Kraken DCA   |                    |"
+    );
+    console.log(
+      "|                     ------------------                    |"
+    );
+    console.log(
+      "|                        by @codepleb                       |"
+    );
+    console.log(
+      "|                                                           |"
+    );
+    console.log(
+      "| Donations BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv |"
+    );
+    console.log(
+      "|===========================================================|"
+    );
     console.log();
     console.log("DCA activated now!");
 
