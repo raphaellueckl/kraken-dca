@@ -179,7 +179,6 @@ const main = async () => {
         ).result
       );
 
-      console.log("asd", `${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`);
       let btcFiatPrice = (
         await queryPublicApi(
           "Ticker",
