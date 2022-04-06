@@ -10,13 +10,14 @@
  *
  * Preconditions:
  * - This script assumes, that you deposit FIAT once a month.
- * - This script assumes, that on SA and SU, no fiat deposits are possible by your bank (not a big deal if that's not the case).
+ * - This script assumes, that on Saturday and Sunday, no fiat deposits are possible by your bank (not a big deal if that's not the case, it won't break anything).
  *
  * Steps involved:
  * - Create an API key in your Kraken account with ONLY the options "Query Funds" and "Create & Modify Orders". Selecting other choices will be a huge risk to all of your funds and does not provide any advantage!
- * - Fill the "User defined" section
- * - Start the script by opening a terminal and entereing "node app.js" from the same folder.
- * - Leave the script running for as long as you want to keep buying as often as possible. :)
+ * - Start the script by opening a terminal and entereing the following into a terminal (do not write the '<>' characters):
+ *   Schema: KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> CURRENCY=<your currency, e.g. USD / EUR / CHF> SHOW_BTC_VALUE=<true / false> node app.js
+ *   Example script start: KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=CHF SHOW_BTC_VALUE=true node app.js
+ * - Leave the script running for as long as you want to keep buying as often as possible. :) A buy order will instantly trigger as soon as you start the script (if you have some money left on the exchange).
  */
 
 const main = async () => {
@@ -95,7 +96,11 @@ const main = async () => {
         port: 443,
         path: `${privateApiPath}${endpoint}${params ? `?${params}` : ""}`,
         method: "POST",
-        headers: { "API-Key": KRAKEN_API_PUBLIC_KEY, "API-Sign": signature },
+        headers: {
+          API_Key: KRAKEN_API_PUBLIC_KEY,
+          API_Sign: signature,
+          "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+        },
       };
 
       const req = https.request(options, (res) => {
@@ -151,6 +156,7 @@ const main = async () => {
   };
 
   try {
+    // await executeBuyOrder();
     console.log(
       "|===========================================================|"
     );
@@ -238,10 +244,10 @@ const main = async () => {
           "Next Buy Order:",
           new Date(now.getTime() + timeUntilNextOrderExecuted)
         );
-        // executeBuyOrder();
+        await executeBuyOrder();
       } else {
         if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
-          // executeBuyOrder();
+          await executeBuyOrder();
         }
         console.log(
           new Date().toLocaleString(),
