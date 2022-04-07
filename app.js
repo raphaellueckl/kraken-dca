@@ -145,7 +145,7 @@ const main = async () => {
 
   const executeBuyOrder = async () => {
     let privateEndpoint = "AddOrder";
-    let privateInputParameters = `pair=xbtchf&type=buy&ordertype=market&volume=${KRAKEN_MIN_BTC_ORDER_SIZE}`;
+    let privateInputParameters = `pair=xbt${CURRENCY.toLowerCase()}&type=buy&ordertype=market&volume=${KRAKEN_MIN_BTC_ORDER_SIZE}`;
     let privateResponse = "";
     privateResponse = await queryPrivateApi(
       privateEndpoint,
