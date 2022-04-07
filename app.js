@@ -94,12 +94,11 @@ const main = async () => {
       const options = {
         hostname: "api.kraken.com",
         port: 443,
-        path: `${privateApiPath}${endpoint}${params ? `?${params}` : ""}`,
+        path: `${privateApiPath}${endpoint}`,
         method: "POST",
         headers: {
-          API_Key: KRAKEN_API_PUBLIC_KEY,
-          API_Sign: signature,
-          "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+          "API-Key": KRAKEN_API_PUBLIC_KEY,
+          "API-Sign": signature,
         },
       };
 
@@ -240,11 +239,11 @@ const main = async () => {
         timeUntilNextOrderExecuted =
           millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
 
+        await executeBuyOrder();
         console.log(
           "Next Buy Order:",
           new Date(now.getTime() + timeUntilNextOrderExecuted)
         );
-        await executeBuyOrder();
       } else {
         if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
           await executeBuyOrder();
