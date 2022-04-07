@@ -151,11 +151,10 @@ const main = async () => {
       privateEndpoint,
       privateInputParameters
     );
-    console.log(privateResponse);
+    return privateResponse;
   };
 
   try {
-    // await executeBuyOrder();
     console.log(
       "|===========================================================|"
     );
@@ -190,6 +189,12 @@ const main = async () => {
 
     while (true) {
       console.log("--------------------");
+      const response = await executeBuyOrder();
+      if (response.error.length !== 0) {
+        console.error("Could not place buy order!");
+      } else {
+        console.log(`Success! ${response?.result?.descr?.order}`);
+      }
 
       let btcFiatPrice = (
         await queryPublicApi(
@@ -235,19 +240,15 @@ const main = async () => {
       console.log(`Leftover Fiat: ${fiatAmount} ${CURRENCY}`);
       if (SHOW_BTC_VALUE) console.log(`Accumulated Bitcoin: ${btcAmount} ₿`);
 
-      if (approximatedAmoutOfOrdersUntilFiatRefill >= 2) {
+      if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
         timeUntilNextOrderExecuted =
           millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
 
-        await executeBuyOrder();
         console.log(
           "Next Buy Order:",
           new Date(now.getTime() + timeUntilNextOrderExecuted)
         );
       } else {
-        if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
-          await executeBuyOrder();
-        }
         console.log(
           new Date().toLocaleString(),
           "Out of fiat money! Checking again in one hour..."
