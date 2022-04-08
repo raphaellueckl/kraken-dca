@@ -3,6 +3,8 @@
 A flexible DCA executor for the cryptocurrency exchange kraken.com!
 English and German videos below!
 
+Please send me feedback! If this is worth something to you, feel free to throw me some sats: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv
+
 ## What does it do?
 
 It buys Bitcoin for you at every price. The more fiat money you deposit onto Kraken, the more frequent you will be buying bitcoin! This works thanks to the algorithm taking the minimum possible order size on kraken and spreads them over time!
@@ -27,8 +29,8 @@ The script assumes that you deposit money once a month and if that day is a week
 
 ## Still too complex? Then watch my videos explaining the FULL process so that each and everyone of you can come on board! :)
   
-  [ENGLISH! Create the keys, install node & how to use the script]()
+  [ENGLISH! Create the keys, install node & how to use the script](https://youtu.be/87yjfmOlrmU)
   
   
-  [German/Deutsch! Keys auf Kraken generieren, Node installieren & weitere Schritte]()
+  [German/Deutsch! Keys auf Kraken generieren, Node installieren & weitere Schritte](https://youtu.be/TJw2CJePilE)
   
