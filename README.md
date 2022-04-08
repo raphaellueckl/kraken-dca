@@ -29,8 +29,8 @@ The script assumes that you deposit money once a month and if that day is a week
 
 ## Still too complex? Then watch my videos explaining the FULL process so that each and everyone of you can come on board! :)
   
-  [ENGLISH! Create the keys, install node & how to use the script](https://youtu.be/87yjfmOlrmU)
+  English Version: [YouTube Video](https://youtu.be/87yjfmOlrmU)
   
   
-  [German/Deutsch! Keys auf Kraken generieren, Node installieren & weitere Schritte](https://youtu.be/TJw2CJePilE)
+  German/Deutsch Version: [YouTube Video](https://youtu.be/TJw2CJePilE)
   
