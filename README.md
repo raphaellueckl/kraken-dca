@@ -3,7 +3,7 @@
 A flexible DCA executor for the cryptocurrency exchange kraken.com!
 English and German videos below!
 
-Please send me feedback! If this is worth something to you, feel free to throw me some sats: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv
+Please send me feedback! If this is worth something to you, feel free to throw me some sats: `bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv`
 
 ## What does it do?
 
@@ -27,7 +27,7 @@ The script assumes that you deposit money once a month and if that day is a week
   - Example script start: KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=CHF SHOW_BTC_VALUE=true node app.js
 - Leave the script running for as long as you want to keep buying as often as possible. :) A buy order will instantly trigger as soon as you start the script (if you have some money left on the exchange).
 
-## Still too complex? Then watch my videos explaining the FULL process so that each and everyone of you can come on board! :)
+## VIDEO! - Watch my videos explaining the FULL process so that each and everyone of you can come on board!
   
   English Version: [YouTube Video](https://youtu.be/87yjfmOlrmU)
   
