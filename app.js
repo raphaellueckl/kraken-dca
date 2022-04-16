@@ -70,8 +70,12 @@ const main = async () => {
       method: "GET",
     };
 
-    const data = await executeGetRequest(options);
-
+    let data = "{}";
+    try {
+      data = await executeGetRequest(options);
+    } catch (e) {
+      console.error(`Could not make GET request to ${endPointName}`);
+    }
     return JSON.parse(data);
   };
 
@@ -129,14 +133,19 @@ const main = async () => {
       apiPostBodyData
     );
 
-    const result = await executePostRequest(
-      apiPostBodyData,
-      privateApiPath,
-      endpoint,
-      KRAKEN_API_PUBLIC_KEY,
-      signature,
-      https
-    );
+    let result = "{}";
+    try {
+      result = await executePostRequest(
+        apiPostBodyData,
+        privateApiPath,
+        endpoint,
+        KRAKEN_API_PUBLIC_KEY,
+        signature,
+        https
+      );
+    } catch (e) {
+      console.error(`Could not make POST request to ${endpoint}`);
+    }
 
     return JSON.parse(result);
   };
@@ -203,18 +212,24 @@ const main = async () => {
         setTimeout(resolve, delay);
       });
 
+    let interrupted = false;
+
     while (true) {
       console.log("--------------------");
       let response;
-      try {
-        response = await executeBuyOrder();
-      } catch (e) {
-        console.error("Buy order request failed!");
-      }
-      if (response?.error?.length !== 0) {
-        console.error("Could not place buy order!");
+      if (!interrupted) {
+        try {
+          response = await executeBuyOrder();
+        } catch (e) {
+          console.error("Buy order request failed!");
+        }
+        if (response?.error?.length !== 0) {
+          console.error("Could not place buy order!");
+        } else {
+          console.log(`Success! ${response?.result?.descr?.order}`);
+        }
       } else {
-        console.log(`Success! ${response?.result?.descr?.order}`);
+        interrupted = false;
       }
 
       let btcFiatPrice = (
@@ -222,9 +237,15 @@ const main = async () => {
           "Ticker",
           `pair=${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`
         )
-      ).result[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0];
+      )?.result?.[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0];
 
-      if (!btcFiatPrice) throw new Error("Probably invalid currency symbol!");
+      if (!btcFiatPrice) {
+        console.error(
+          "Probably invalid currency symbol! If this happens at the start when you run the script first, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
+        );
+        interrupted = true;
+        continue;
+      }
       console.log(`BTC-Price: ${btcFiatPrice} ${CURRENCY}`);
 
       let privateEndpoint = "Balance";
@@ -232,7 +253,15 @@ const main = async () => {
 
       const balance = (
         await queryPrivateApi(privateEndpoint, privateInputParameters)
-      ).result;
+      )?.result;
+
+      if (!balance || Object.keys(balance).length === 0) {
+        console.error(
+          "Could not query the balance on your account. Either fix your API Key on kraken or if you're lucky, this is temporary and will fix itself!"
+        );
+        interrupted = true;
+        continue;
+      }
 
       const now = new Date();
       const nextFiatDropDate = new Date(
