@@ -179,6 +179,15 @@ const main = async () => {
     return privateResponse;
   };
 
+  const formatTimeToHoursAndLess = (timeInMillis) => {
+    const hours = timeInMillis / 1000 / 60 / 60;
+    const minutes = (timeInMillis / 1000 / 60) % 60;
+    const seconds = (timeInMillis / 1000) % 60;
+    return `${parseInt(hours, 10)}h ${parseInt(minutes, 10)}m ${Math.round(
+      seconds
+    )}s`;
+  };
+
   try {
     console.log(
       "|===========================================================|"
@@ -297,6 +306,10 @@ const main = async () => {
         console.log(
           "Next Buy Order:",
           new Date(now.getTime() + timeUntilNextOrderExecuted)
+        );
+        console.log(
+          "Current time between each buy order: ",
+          formatTimeToHoursAndLess(timeUntilNextOrderExecuted)
         );
       } else {
         console.log(
