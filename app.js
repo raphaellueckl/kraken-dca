@@ -43,8 +43,8 @@ const main = async () => {
     fiatPrefix = "Z";
   }
 
-  const getRequest = async (options) => {
-    const data = await new Promise((resolve, reject) => {
+  const executeGetRequest = async (options) => {
+    return new Promise((resolve, reject) => {
       const req = https.request(options, (res) => {
         let data = "";
         res.on("data", (d) => {
@@ -60,8 +60,6 @@ const main = async () => {
       });
       req.end();
     });
-
-    return data;
   };
 
   const queryPublicApi = async (endPointName, inputParameters) => {
@@ -72,24 +70,20 @@ const main = async () => {
       method: "GET",
     };
 
-    const data = await getRequest(options);
+    const data = await executeGetRequest(options);
 
     return JSON.parse(data);
   };
 
-  const queryPrivateApi = async (endpoint, params) => {
-    const nonce = Date.now().toString();
-    const apiPostBodyData = "nonce=" + nonce + "&" + params;
-
-    const signature = createAuthenticationSignature(
-      KRAKEN_API_PRIVATE_KEY,
-      privateApiPath,
-      endpoint,
-      nonce,
-      apiPostBodyData
-    );
-
-    const result = await new Promise((resolve, reject) => {
+  const executePostRequest = async (
+    apiPostBodyData,
+    privateApiPath,
+    endpoint,
+    KRAKEN_API_PUBLIC_KEY,
+    signature,
+    https
+  ) => {
+    return new Promise((resolve, reject) => {
       const body = apiPostBodyData;
       const options = {
         hostname: "api.kraken.com",
@@ -121,6 +115,28 @@ const main = async () => {
       req.write(body);
       req.end();
     });
+  };
+
+  const queryPrivateApi = async (endpoint, params) => {
+    const nonce = Date.now().toString();
+    const apiPostBodyData = "nonce=" + nonce + "&" + params;
+
+    const signature = createAuthenticationSignature(
+      KRAKEN_API_PRIVATE_KEY,
+      privateApiPath,
+      endpoint,
+      nonce,
+      apiPostBodyData
+    );
+
+    const result = await executePostRequest(
+      apiPostBodyData,
+      privateApiPath,
+      endpoint,
+      KRAKEN_API_PUBLIC_KEY,
+      signature,
+      https
+    );
 
     return JSON.parse(result);
   };
@@ -189,8 +205,13 @@ const main = async () => {
 
     while (true) {
       console.log("--------------------");
-      const response = await executeBuyOrder();
-      if (response.error.length !== 0) {
+      let response;
+      try {
+        response = await executeBuyOrder();
+      } catch (e) {
+        console.error("Buy order request failed!");
+      }
+      if (response?.error?.length !== 0) {
         console.error("Could not place buy order!");
       } else {
         console.log(`Success! ${response?.result?.descr?.order}`);
