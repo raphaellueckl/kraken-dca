@@ -32,6 +32,7 @@ const main = async () => {
   const https = require("https");
 
   const { log, error } = console;
+  let logQueue = [];
 
   const isWeekend = (date) => date.getDay() % 6 == 0;
 
@@ -202,6 +203,11 @@ const main = async () => {
     log();
     log("DCA activated now!");
 
+    const flushLogging = () => {
+      log(logQueue.join(" | "));
+      logQueue = [];
+    };
+
     const timer = (delay) =>
       new Promise((resolve) => {
         setTimeout(resolve, delay);
@@ -211,17 +217,17 @@ const main = async () => {
 
     while (true) {
       log("--------------------");
-      let response;
+      let buyOrderResponse;
       if (!interrupted) {
         try {
-          response = await executeBuyOrder();
+          buyOrderResponse = await executeBuyOrder();
         } catch (e) {
-          error("Buy order request failed!");
+          error("Buy order https-request failed!");
         }
-        if (response?.error?.length !== 0) {
+        if (buyOrderResponse?.error?.length !== 0) {
           error("Could not place buy order!");
         } else {
-          log(`Success! ${response?.result?.descr?.order}`);
+          logQueue.push(`Success! ${buyOrderResponse?.result?.descr?.order}`);
         }
       } else {
         interrupted = false;
@@ -235,13 +241,14 @@ const main = async () => {
       )?.result?.[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0];
 
       if (!btcFiatPrice) {
+        flushLogging();
         error(
           "Probably invalid currency symbol! If this happens at the start when you run the script first, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
         );
         interrupted = true;
         continue;
       }
-      log(`BTC-Price: ${btcFiatPrice} ${CURRENCY}`);
+      logQueue.push(`BTC-Price: ${btcFiatPrice} ${CURRENCY}`);
 
       let privateEndpoint = "Balance";
       let privateInputParameters = "";
@@ -251,6 +258,7 @@ const main = async () => {
       )?.result;
 
       if (!balance || Object.keys(balance).length === 0) {
+        flushLogging();
         error(
           "Could not query the balance on your account. Either fix your API Key on kraken or if you're lucky, this is temporary and will fix itself!"
         );
@@ -282,27 +290,29 @@ const main = async () => {
         myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
       let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
 
-      log(`Leftover Fiat: ${fiatAmount} ${CURRENCY}`);
-      if (SHOW_BTC_VALUE) log(`Accumulated Bitcoin: ${btcAmount} ₿`);
+      logQueue.push(`Leftover Fiat: ${fiatAmount} ${CURRENCY}`);
+      if (SHOW_BTC_VALUE) logQueue.push(`Accumulated Bitcoin: ${btcAmount} ₿`);
 
       if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
         timeUntilNextOrderExecuted =
           millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
 
-        log(
-          "Next Buy Order:",
-          new Date(now.getTime() + timeUntilNextOrderExecuted)
+        logQueue.push(
+          `Next Buy Order: ${new Date(
+            now.getTime() + timeUntilNextOrderExecuted
+          )}`
         );
-        log(
-          "Current time between each buy order: ",
-          formatTimeToHoursAndLess(timeUntilNextOrderExecuted)
+        logQueue.push(
+          `Current time between each buy order: ${formatTimeToHoursAndLess(
+            timeUntilNextOrderExecuted
+          )}`
         );
       } else {
-        log(
-          new Date().toLocaleString(),
-          "Out of fiat money! Checking again in one hour..."
+        logQueue.push(
+          `${new Date().toLocaleString()} Out of fiat money! Checking again in one hour...`
         );
       }
+      flushLogging();
       await timer(timeUntilNextOrderExecuted);
     }
 
