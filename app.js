@@ -191,6 +191,18 @@ const main = async () => {
     )}s`;
   };
 
+  const flushLogging = () => {
+    log(logQueue.join(" | "));
+    logQueue = [];
+  };
+
+  const timer = (delay) =>
+    new Promise((resolve) => {
+      setTimeout(resolve, delay);
+    });
+
+  let interrupted = false;
+
   try {
     log("|===========================================================|");
     log("|                     ------------------                    |");
@@ -202,18 +214,6 @@ const main = async () => {
     log("|===========================================================|");
     log();
     log("DCA activated now!");
-
-    const flushLogging = () => {
-      log(logQueue.join(" | "));
-      logQueue = [];
-    };
-
-    const timer = (delay) =>
-      new Promise((resolve) => {
-        setTimeout(resolve, delay);
-      });
-
-    let interrupted = false;
 
     while (true) {
       log("--------------------");
