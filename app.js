@@ -31,6 +31,8 @@ const main = async () => {
   const crypto = require("crypto");
   const https = require("https");
 
+  const { log, error } = console;
+
   const isWeekend = (date) => date.getDay() % 6 == 0;
 
   const publicApiPath = "/0/public/";
@@ -56,7 +58,7 @@ const main = async () => {
       });
 
       req.on("error", (error) => {
-        console.error(error);
+        error(error);
       });
       req.end();
     });
@@ -74,7 +76,7 @@ const main = async () => {
     try {
       data = await executeGetRequest(options);
     } catch (e) {
-      console.error(`Could not make GET request to ${endPointName}`);
+      error(`Could not make GET request to ${endPointName}`);
     }
     return JSON.parse(data);
   };
@@ -113,7 +115,7 @@ const main = async () => {
       });
 
       req.on("error", (error) => {
-        console.error("error happened", error);
+        error("error happened", error);
       });
 
       req.write(body);
@@ -144,7 +146,7 @@ const main = async () => {
         https
       );
     } catch (e) {
-      console.error(`Could not make POST request to ${endpoint}`);
+      error(`Could not make POST request to ${endpoint}`);
     }
 
     return JSON.parse(result);
@@ -189,32 +191,16 @@ const main = async () => {
   };
 
   try {
-    console.log(
-      "|===========================================================|"
-    );
-    console.log(
-      "|                     ------------------                    |"
-    );
-    console.log(
-      "|                     |   Kraken DCA   |                    |"
-    );
-    console.log(
-      "|                     ------------------                    |"
-    );
-    console.log(
-      "|                        by @codepleb                       |"
-    );
-    console.log(
-      "|                                                           |"
-    );
-    console.log(
-      "| Donations BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv |"
-    );
-    console.log(
-      "|===========================================================|"
-    );
-    console.log();
-    console.log("DCA activated now!");
+    log("|===========================================================|");
+    log("|                     ------------------                    |");
+    log("|                     |   Kraken DCA   |                    |");
+    log("|                     ------------------                    |");
+    log("|                        by @codepleb                       |");
+    log("|                                                           |");
+    log("| Donations BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv |");
+    log("|===========================================================|");
+    log();
+    log("DCA activated now!");
 
     const timer = (delay) =>
       new Promise((resolve) => {
@@ -224,18 +210,18 @@ const main = async () => {
     let interrupted = false;
 
     while (true) {
-      console.log("--------------------");
+      log("--------------------");
       let response;
       if (!interrupted) {
         try {
           response = await executeBuyOrder();
         } catch (e) {
-          console.error("Buy order request failed!");
+          error("Buy order request failed!");
         }
         if (response?.error?.length !== 0) {
-          console.error("Could not place buy order!");
+          error("Could not place buy order!");
         } else {
-          console.log(`Success! ${response?.result?.descr?.order}`);
+          log(`Success! ${response?.result?.descr?.order}`);
         }
       } else {
         interrupted = false;
@@ -249,13 +235,13 @@ const main = async () => {
       )?.result?.[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0];
 
       if (!btcFiatPrice) {
-        console.error(
+        error(
           "Probably invalid currency symbol! If this happens at the start when you run the script first, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
         );
         interrupted = true;
         continue;
       }
-      console.log(`BTC-Price: ${btcFiatPrice} ${CURRENCY}`);
+      log(`BTC-Price: ${btcFiatPrice} ${CURRENCY}`);
 
       let privateEndpoint = "Balance";
       let privateInputParameters = "";
@@ -265,7 +251,7 @@ const main = async () => {
       )?.result;
 
       if (!balance || Object.keys(balance).length === 0) {
-        console.error(
+        error(
           "Could not query the balance on your account. Either fix your API Key on kraken or if you're lucky, this is temporary and will fix itself!"
         );
         interrupted = true;
@@ -296,23 +282,23 @@ const main = async () => {
         myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
       let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
 
-      console.log(`Leftover Fiat: ${fiatAmount} ${CURRENCY}`);
-      if (SHOW_BTC_VALUE) console.log(`Accumulated Bitcoin: ${btcAmount} ₿`);
+      log(`Leftover Fiat: ${fiatAmount} ${CURRENCY}`);
+      if (SHOW_BTC_VALUE) log(`Accumulated Bitcoin: ${btcAmount} ₿`);
 
       if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
         timeUntilNextOrderExecuted =
           millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
 
-        console.log(
+        log(
           "Next Buy Order:",
           new Date(now.getTime() + timeUntilNextOrderExecuted)
         );
-        console.log(
+        log(
           "Current time between each buy order: ",
           formatTimeToHoursAndLess(timeUntilNextOrderExecuted)
         );
       } else {
-        console.log(
+        log(
           new Date().toLocaleString(),
           "Out of fiat money! Checking again in one hour..."
         );
@@ -320,13 +306,13 @@ const main = async () => {
       await timer(timeUntilNextOrderExecuted);
     }
 
-    // console.log("|=======================================|");
-    // console.log("|             DCA stopped!              |");
-    // console.log("|=======================================|");
+    // log("|=======================================|");
+    // log("|             DCA stopped!              |");
+    // log("|=======================================|");
   } catch (e) {
-    console.log();
-    console.log("AN EXCEPTION OCCURED :(");
-    console.log(e);
+    log();
+    log("AN EXCEPTION OCCURED :(");
+    log(e);
   }
 };
 
