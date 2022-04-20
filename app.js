@@ -3,10 +3,10 @@
  * Kraken DCA
  * by @codepleb
  *
- * Donations in BTC:
+ * Donations in BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv
  * Donations in Lightning BTC:
  *
- * This app allows to you to DCA into Bitcoin on Kraken. It checks the Balance on your Kraken Account and runs as many BTC buy orders as possible and tries to split it equally over time.
+ * This app allows to you to DCA into Bitcoin (mainnet, not lightning) on Kraken. It checks the Balance on your Kraken Account and runs as many BTC buy orders as possible and tries to split it equally over time.
  *
  * Preconditions:
  * - This script assumes, that you deposit FIAT once a month.
@@ -15,20 +15,20 @@
  * Steps involved:
  * - Create an API key in your Kraken account with ONLY the options "Query Funds" and "Create & Modify Orders". Selecting other choices will be a huge risk to all of your funds and does not provide any advantage!
  * - Start the script by opening a terminal and entereing the following into a terminal (do not write the '<>' characters):
- *   Schema: KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> CURRENCY=<your currency, e.g. USD / EUR / CHF> SHOW_BTC_VALUE=<true / false> node app.js
- *   Example script start: KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=CHF SHOW_BTC_VALUE=true node app.js
+ *   Schema: KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<description of your withdrawal address> WITHDRAW_TARGET=<number> CURRENCY=<your currency, e.g. USD / EUR / CHF> SHOW_BTC_VALUE=<true> DATE_OF_CASH_REFILL=<1 to 28> node app.js
+ *   Example script start: KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=CHF SHOW_BTC_VALUE=true DATE_OF_CASH_REFILL=28 node app.js
  * - Leave the script running for as long as you want to keep buying as often as possible. :) A buy order will instantly trigger as soon as you start the script (if you have some money left on the exchange).
  */
 
 const main = async () => {
-  const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL) || 26; // Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
-  const CURRENCY = process.env.CURRENCY || "USD"; // Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
-  const KRAKEN_MIN_BTC_ORDER_SIZE = 0.0001; // Kraken currently has a minimum order size of 0.0001 BTC. Can be changed, but should be the standard for the next few years I think.
-
+  const KRAKEN_MIN_BTC_ORDER_SIZE = 0.0001; // Don't change this except if Kraken would change policy! Kraken currently has a minimum order size of 0.0001 BTC.
   const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API public key
   const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
   const KRAKEN_WITHDRAWAL_ADDRESS_KEY =
     process.env.KRAKEN_WITHDRAWAL_ADDRESS_KEY || false; // OPTIONAL! The "Description" (name) of the whitelisted bitcoin address on kraken. Don't set this option if you don't want automatic withdrawals.
+  const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL) || 26; // Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
+  const CURRENCY = process.env.CURRENCY || "USD"; // Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
+  const WITHDRAW_TARGET = process.env.WITHDRAW_TARGET || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
   const SHOW_BTC_VALUE = process.env.SHOW_BTC_VALUE || false; // OPTIONAL! Print amount of BTC to the console after each buy order
   const crypto = require("crypto");
   const https = require("https");
@@ -220,7 +220,7 @@ const main = async () => {
   withdrawalDate.setDate(1);
   withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
 
-  const isWithdrawalDue = () => {
+  const isWithdrawalDateDue = () => {
     if (new Date() > withdrawalDate) {
       withdrawalDate.setDate(1);
       withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
@@ -228,6 +228,14 @@ const main = async () => {
     }
     return false;
   };
+
+  const isWithdrawalDue = (btcAmount) =>
+    (KRAKEN_WITHDRAWAL_ADDRESS_KEY &&
+      isWithdrawalDateDue() &&
+      !WITHDRAW_TARGET) ||
+    (KRAKEN_WITHDRAWAL_ADDRESS_KEY &&
+      WITHDRAW_TARGET &&
+      Number(WITHDRAW_TARGET) <= btcAmount);
 
   try {
     log("|===========================================================|");
@@ -341,10 +349,8 @@ const main = async () => {
 
       flushLogging();
 
-      // withdrawalDate.setMonth(withdrawalDate.getMonth() - 1);
-      if (KRAKEN_WITHDRAWAL_ADDRESS_KEY && isWithdrawalDue()) {
+      if (isWithdrawalDue(btcAmount)) {
         const withdrawal = await executeWithdrawal(btcAmount);
-        // const withdrawal = await executeWithdrawal(0.0005);
         if (withdrawal?.result?.refid)
           console.log(
             `Withdrawal executed! Date: ${new Date().toLocaleString()}!`
@@ -353,10 +359,6 @@ const main = async () => {
       }
       await timer(timeUntilNextOrderExecuted);
     }
-
-    // log("|=======================================|");
-    // log("|             DCA stopped!              |");
-    // log("|=======================================|");
   } catch (e) {
     log();
     log("AN EXCEPTION OCCURED :(");
