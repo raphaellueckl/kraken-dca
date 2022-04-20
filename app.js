@@ -27,7 +27,9 @@ const main = async () => {
 
   const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API public key
   const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
-  const SHOW_BTC_VALUE = process.env.SHOW_BTC_VALUE || false; // Print amount of BTC to the console after each buy order
+  const KRAKEN_WITHDRAWAL_ADDRESS_KEY =
+    process.env.KRAKEN_WITHDRAWAL_ADDRESS_KEY || false; // OPTIONAL! The "Description" (name) of the whitelisted bitcoin address on kraken. Don't set this option if you don't want automatic withdrawals.
+  const SHOW_BTC_VALUE = process.env.SHOW_BTC_VALUE || false; // OPTIONAL! Print amount of BTC to the console after each buy order
   const crypto = require("crypto");
   const https = require("https");
 
@@ -182,6 +184,17 @@ const main = async () => {
     return privateResponse;
   };
 
+  const executeWithdrawal = async (amount) => {
+    let privateEndpoint = "Withdraw";
+    let privateInputParameters = `asset=XBT&key=${KRAKEN_WITHDRAWAL_ADDRESS_KEY}&amount=${amount}`;
+    let privateResponse = "";
+    privateResponse = await queryPrivateApi(
+      privateEndpoint,
+      privateInputParameters
+    );
+    return privateResponse;
+  };
+
   const formatTimeToHoursAndLess = (timeInMillis) => {
     const hours = timeInMillis / 1000 / 60 / 60;
     const minutes = (timeInMillis / 1000 / 60) % 60;
@@ -202,6 +215,19 @@ const main = async () => {
     });
 
   let interrupted = false;
+
+  let withdrawalDate = new Date();
+  withdrawalDate.setDate(1);
+  withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
+
+  const isWithdrawalDue = () => {
+    if (new Date() > withdrawalDate) {
+      withdrawalDate.setDate(1);
+      withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
+      return true;
+    }
+    return false;
+  };
 
   try {
     log("|===========================================================|");
@@ -312,7 +338,19 @@ const main = async () => {
           `${new Date().toLocaleString()} Out of fiat money! Checking again in one hour...`
         );
       }
+
       flushLogging();
+
+      // withdrawalDate.setMonth(withdrawalDate.getMonth() - 1);
+      if (KRAKEN_WITHDRAWAL_ADDRESS_KEY && isWithdrawalDue()) {
+        const withdrawal = await executeWithdrawal(btcAmount);
+        // const withdrawal = await executeWithdrawal(0.0005);
+        if (withdrawal?.result?.refid)
+          console.log(
+            `Withdrawal executed! Date: ${new Date().toLocaleString()}!`
+          );
+        else console.error(`Withdrawal failed! ${withdrawal?.error}`);
+      }
       await timer(timeUntilNextOrderExecuted);
     }
 
