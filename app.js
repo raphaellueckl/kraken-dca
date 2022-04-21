@@ -4,7 +4,7 @@
  * by @codepleb
  *
  * Donations in BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv
- * Donations in Lightning BTC:
+ * Donations in Lightning-BTC (Telegram): codepleb@ln.tips
  *
  * This app allows to you to DCA into Bitcoin (mainnet, not lightning) on Kraken. It checks the Balance on your Kraken Account and runs as many BTC buy orders as possible and tries to split it equally over time.
  *
@@ -245,6 +245,7 @@ const main = async () => {
     log("|                        by @codepleb                       |");
     log("|                                                           |");
     log("| Donations BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv |");
+    log("| Donations Lightning-BTC (Telegram): codepleb@ln.tips      |");
     log("|===========================================================|");
     log();
     log("DCA activated now!");
