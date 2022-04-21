@@ -29,9 +29,9 @@ The script assumes that you deposit money once a month and if that day is a week
 
 - Create an API key in your Kraken account with ONLY the options `Query Funds` and `Create & Modify Orders`. IMPORTANT: If you want to let the script automatically withdraw funds to your private wallet, also select the option `Withdraw Funds`. Selecting other choices will be a risk to your account and does not provide any advantage!
 - Start the script by opening a terminal and entereing the following into a terminal (do not write the '<>' characters):
-  - Schema: KRAKEN_API_PUBLIC_KEY=<your kraken api public key> KRAKEN_API_PRIVATE_KEY=<your kraken api private key> CURRENCY=<your currency, e.g. USD / EUR / CHF> SHOW_BTC_VALUE=<true (or don't provide this parameter at all)> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<kraken api key 'description' (or don't provide this parameter at all)> WITHDRAW_TARGET=<the target Bitcoin amount until withdrawal> node app.js
-  - Example script start - Minimal Version: KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=EUR node app.js
-  - Example script start - 'Including Withdrawals'-Version: KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" node app.js
+  - Schema: `KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<'description' of your withdrawal address> WITHDRAW_TARGET=<number> CURRENCY=<your currency, e.g. USD / EUR / CHF> SHOW_BTC_VALUE=<true> DATE_OF_CASH_REFILL=<1 to 28> node app.js`
+  - Example script start - Minimal Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=EUR DATE_OF_CASH_REFILL=24 node app.js`
+  - Example script start - 'Including Withdrawals'-Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" DATE_OF_CASH_REFILL=11 SHOW_BTC_VALUE=true node app.js`
 
 - Leave the script running for as long as you want to keep buying. :) A buy order will instantly trigger as soon as you start the script (if you have some money left).
 
@@ -53,8 +53,7 @@ Download Node here if you don't have it: https://nodejs.org/en/download/
 
 ## VIDEO! - Watch my videos explaining the FULL process so that each and everyone of you can come on board!
   
-  English Version: [YouTube Video](https://youtu.be/1uhF3MkOyXU)
-  
-  
-  German/Deutsch Version: [YouTube Video](https://youtu.be/m8KpXjiyEbQ)
+English Version: [YouTube Video](https://youtu.be/1uhF3MkOyXU)
+
+German/Deutsch Version: [YouTube Video](https://youtu.be/m8KpXjiyEbQ)
   
