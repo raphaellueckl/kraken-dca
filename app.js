@@ -325,21 +325,18 @@ const main = async () => {
       let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
 
       logQueue.push(`Leftover Fiat: ${fiatAmount} ${CURRENCY}`);
-      if (SHOW_BTC_VALUE) logQueue.push(`Accumulated Bitcoin: ${btcAmount} ₿`);
+      if (SHOW_BTC_VALUE) logQueue.push(`Accumulated BTC: ${btcAmount} ₿`);
 
       if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
         timeUntilNextOrderExecuted =
           millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
 
         logQueue.push(
-          `Next Buy Order: ${new Date(
-            now.getTime() + timeUntilNextOrderExecuted
-          )}`
-        );
-        logQueue.push(
-          `Current time between each buy order: ${formatTimeToHoursAndLess(
+          `Next buy in ${formatTimeToHoursAndLess(
             timeUntilNextOrderExecuted
-          )}`
+          )} at: ${new Date(
+            now.getTime() + timeUntilNextOrderExecuted
+          ).toLocaleString()}`
         );
       } else {
         logQueue.push(
@@ -361,7 +358,7 @@ const main = async () => {
     }
   } catch (e) {
     log();
-    log("AN EXCEPTION OCCURED :(");
+    log("AN ERROR OCCURED :(");
     log(e);
   }
 };
