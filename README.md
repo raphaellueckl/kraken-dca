@@ -53,8 +53,8 @@ Download Node here if you don't have it: https://nodejs.org/en/download/
 
 ## VIDEO! - Watch my videos explaining the FULL process so that each and everyone of you can come on board!
   
-  English Version: [YouTube Video](https://youtu.be/87yjfmOlrmU)
+  English Version: [YouTube Video](https://youtu.be/1uhF3MkOyXU)
   
   
-  German/Deutsch Version: [YouTube Video](https://youtu.be/TJw2CJePilE)
+  German/Deutsch Version: [YouTube Video](https://youtu.be/m8KpXjiyEbQ)
   
