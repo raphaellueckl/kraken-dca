@@ -251,6 +251,7 @@ const main = async () => {
 
     while (true) {
       log("--------------------");
+      logQueue.push(new Date().toLocaleString());
       let buyOrderResponse;
       if (!interrupted) {
         try {
