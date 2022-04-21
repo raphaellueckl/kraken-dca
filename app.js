@@ -214,7 +214,7 @@ const main = async () => {
       setTimeout(resolve, delay);
     });
 
-  let interrupted = false;
+  let interrupted = 0;
 
   let withdrawalDate = new Date();
   withdrawalDate.setDate(1);
@@ -266,7 +266,7 @@ const main = async () => {
           logQueue.push(`Success! ${buyOrderResponse?.result?.descr?.order}`);
         }
       } else {
-        interrupted = false;
+        error("Did not buy due to previous interrupt!");
       }
 
       let btcFiatPrice = (
@@ -281,7 +281,10 @@ const main = async () => {
         error(
           "Probably invalid currency symbol! If this happens at the start when you run the script first, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
         );
-        interrupted = true;
+        if (++interrupted >= 3) {
+          throw Error("Interrupted!");
+        }
+        await timer(5000);
         continue;
       }
       logQueue.push(`BTC-Price: ${btcFiatPrice} ${CURRENCY}`);
@@ -296,9 +299,12 @@ const main = async () => {
       if (!balance || Object.keys(balance).length === 0) {
         flushLogging();
         error(
-          "Could not query the balance on your account. Either fix your API Key on kraken or if you're lucky, this is temporary and will fix itself!"
+          "Could not query the balance on your account. Please fix your API Key permissions on kraken!"
         );
-        interrupted = true;
+        if (++interrupted >= 3) {
+          throw Error("Interrupted! Too many failed API calls.");
+        }
+        await timer(5000);
         continue;
       }
 
@@ -356,6 +362,7 @@ const main = async () => {
           );
         else console.error(`Withdrawal failed! ${withdrawal?.error}`);
       }
+      interrupted = 0;
       await timer(timeUntilNextOrderExecuted);
     }
   } catch (e) {
