@@ -9,7 +9,7 @@ Please send me feedback! If this is worth something to you, feel free to throw m
 
 ## What does it do?
 
-It buys Bitcoin for you at every price. The more fiat money you deposit onto Kraken, the more frequent you will be buying bitcoin! This works thanks to the algorithm taking the minimum possible order size on kraken and executing it as many times as possible so that you run out of FIAT when the next FIAT drop is supposed to happen!
+It buys Bitcoin for you at every price. The more fiat money you deposit onto Kraken, the more frequent you will be buying bitcoin! This works thanks to the algorithm taking the minimum possible order size on kraken and executing it as many times as possible, so that you run out of FIAT when the next FIAT drop is supposed to happen!
 
 At the time of writing this readme, when you deposit 1500 euro each month, you would buy bitcoin approximaltely every two hours. If you deposit 3000 Euro each month, you would buy every hour!
 
@@ -56,4 +56,9 @@ Download Node here if you don't have it: https://nodejs.org/en/download/
 English Version: [YouTube Video](https://youtu.be/1uhF3MkOyXU)
 
 German/Deutsch Version: [YouTube Video](https://youtu.be/m8KpXjiyEbQ)
-  
+
+## FAQ
+
+> let's say I deposit $500 right now, and then a week or two from now decide to toss in another $100 or $200. does it adjust for that?
+
+Yes! After every buy it checks "how much money is left", "how much time is left until the next deposit?" and when you add another 200$ you will be buying bitcoin more often (given the BTC price stays the same)!
