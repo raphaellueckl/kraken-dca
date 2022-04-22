@@ -7,7 +7,7 @@ Please send me feedback! If this is worth something to you, feel free to throw m
 - via Bitcoin mainnet: `bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv`
 - via Bitcoin Lightning (telegram): `codepleb@ln.tips`
 
-**Tested currencies that work: `EUR, USD, CHF`.** Others might work as well, but I only tested with those three. Feel free to test it with others, the worst you can get is an error message. :)
+**Tested currencies that work: `EUR, USD, CHF`.** Others might work as well, but I only tested with those three. Feel free to test it with others, as the worst you can get is an error message. :)
 
 ## What does it do?
 
