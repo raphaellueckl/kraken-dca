@@ -13,7 +13,7 @@ Please send me feedback! If this is worth something to you, feel free to throw m
 
 It buys Bitcoin for you at every price. The more fiat money you deposit onto Kraken, the more frequent you will be buying bitcoin! This works thanks to the algorithm taking the minimum possible order size on kraken and executing it as many times as possible, so that you run out of FIAT when the next FIAT drop is supposed to happen!
 
-At the time of writing this readme, when you deposit 1500 euro each month, you would buy bitcoin approximaltely every two hours. If you deposit 3000 Euro each month, you would buy every hour!
+At the time of writing this readme, when you deposit 1500 euro each month, **you would buy bitcoin approximaltely every two hours**. If you deposit 3000 Euro each month, you would buy every hour!
 
 Example: You deposit FIAT money every month worth 0.01 BTC. The minimum order size on Kraken is 0.0001 BTC (minimum trade volume). 0.01 / 0.0001 == 100 orders over the next month. Until the next FIAT deposit, it will equally spread 100 buy orders over time. The amount of orders cannot really be absolutely esimated at the beginning, but it will be recalculated after every buy, because if the BTC price would double during that time, the amount of orders possible will obviously become half as much.
 
