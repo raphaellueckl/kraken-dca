@@ -7,6 +7,8 @@ Please send me feedback! If this is worth something to you, feel free to throw m
 - via Bitcoin mainnet: `bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv`
 - via Bitcoin Lightning (telegram): `codepleb@ln.tips`
 
+**Tested currencies that work! `EUR, USD, CHF`.** Others might work as well, but I only tested with those three. Feel free to test it with others, the most you can get is an error message. :)
+
 ## What does it do?
 
 It buys Bitcoin for you at every price. The more fiat money you deposit onto Kraken, the more frequent you will be buying bitcoin! This works thanks to the algorithm taking the minimum possible order size on kraken and executing it as many times as possible, so that you run out of FIAT when the next FIAT drop is supposed to happen!
