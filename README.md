@@ -34,6 +34,7 @@ The script assumes that you deposit money once a month and if that day is a week
   - Schema: `KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<'description' of your withdrawal address> WITHDRAW_TARGET=<number> CURRENCY=<your currency, e.g. USD / EUR / CHF> SHOW_BTC_VALUE=<true> DATE_OF_CASH_REFILL=<1 to 28> node app.js`
   - Example script start - Minimal Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=EUR DATE_OF_CASH_REFILL=24 node app.js`
   - Example script start - 'Including Withdrawals'-Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" DATE_OF_CASH_REFILL=11 SHOW_BTC_VALUE=true node app.js`
+  - **WINDOWS USERS BEWARE!** Your command looks like this: `SET KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps && SET KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== && SET CURRENCY=USD && SET WITHDRAW_TARGET=0.1 && SET KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" && SET DATE_OF_CASH_REFILL=11 && SET SHOW_BTC_VALUE=true && node app.js`
 
 - Leave the script running for as long as you want to keep buying. :) A buy order will instantly trigger as soon as you start the script (if you have some money left).
 
@@ -49,7 +50,6 @@ Kraken does not allow withdrawals to random addresses. You have to register them
 - `cd ~ && mkdir kraken-dca-script && cd kraken-dca-script` ENTER
 - `curl https://raw.githubusercontent.com/raphaellueckl/kraken-dca/master/app.js --output app.js` ENTER
 - `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" node app.js` (replace parameter values - like `CURRENCY=...` - with your custom data) ENTER
-- **WINDOWS USERS BEWARE!** Your command looks like this: `SET KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps && SET KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== && SET CURRENCY=USD && SET WITHDRAW_TARGET=0.1 && SET KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" && SET DATE_OF_CASH_REFILL=11 && SET SHOW_BTC_VALUE=true && node app.js`
 - DONE! If there are any errors you don't understand, update `Node` on your system. Node 17.8+ works fine.
 
 Download Node here if you don't have it: https://nodejs.org/en/download/
