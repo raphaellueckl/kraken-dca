@@ -49,6 +49,7 @@ Kraken does not allow withdrawals to random addresses. You have to register them
 - `cd ~ && mkdir kraken-dca-script && cd kraken-dca-script` ENTER
 - `curl https://raw.githubusercontent.com/raphaellueckl/kraken-dca/master/app.js --output app.js` ENTER
 - `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" node app.js` (replace parameter values - like `CURRENCY=...` - with your custom data) ENTER
+- **WINDOWS USERS BEWARE!** Your command looks like this: `SET KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps && SET KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== && SET CURRENCY=USD && SET WITHDRAW_TARGET=0.1 && SET KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" && SET DATE_OF_CASH_REFILL=11 && SET SHOW_BTC_VALUE=true && node app.js`
 - DONE! If there are any errors you don't understand, update `Node` on your system. Node 17.8+ works fine.
 
 Download Node here if you don't have it: https://nodejs.org/en/download/
