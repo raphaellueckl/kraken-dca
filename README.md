@@ -65,3 +65,7 @@ German/Deutsch Version: [YouTube Video](https://youtu.be/m8KpXjiyEbQ)
 > let's say I deposit $500 right now, and then a week or two from now decide to toss in another $100 or $200. does it adjust for that?
 
 Yes! After every buy it checks "how much money is left", "how much time is left until the next deposit?" and when you add another 200$ you will be buying bitcoin more often (given the BTC price stays the same)!
+
+## HELP!
+
+You can contact me anytime on telegram: @codepleb
