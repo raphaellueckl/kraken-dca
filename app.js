@@ -43,7 +43,7 @@ const main = async () => {
 
   let cryptoPrefix = "";
   let fiatPrefix = "";
-  if (CURRENCY === "USD" || CURRENCY === "EUR") {
+  if (CURRENCY === "USD" || CURRENCY === "EUR" || CURRENCY === "GBP") {
     cryptoPrefix = "X";
     fiatPrefix = "Z";
   }
