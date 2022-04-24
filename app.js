@@ -28,6 +28,12 @@ const main = async () => {
   const publicApiPath = "/0/public/";
   const privateApiPath = "/0/private/";
 
+  const cashRefillDateValidityCheck = Number(DATE_OF_CASH_REFILL);
+  if (cashRefillDateValidityCheck < 1 || cashRefillDateValidityCheck > 27)
+    throw new Error(
+      "DATE_OF_CASH_REFILL must be a number from and including 1-27! Higher days are not allowed due to technical reasons. If you want to deposit after the 27th anyways, still set DATE_OF_CASH_REFILL to 27 and NOT to 1, as that would convert all your FIAT into BTC by the first of next month!"
+    );
+
   let cryptoPrefix = "";
   let fiatPrefix = "";
   if (CURRENCY === "USD" || CURRENCY === "EUR" || CURRENCY === "GBP") {
