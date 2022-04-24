@@ -68,6 +68,10 @@ German/Deutsch Version: [YouTube Video](https://youtu.be/m8KpXjiyEbQ)
 
 Yes! After every buy it checks "how much money is left", "how much time is left until the next deposit?" and when you add another 200$ you will be buying bitcoin more often (given the BTC price stays the same)!
 
+> Isn't it more expensive to buy often compared to buy once a month, fee wise?
+
+On Kraken, no! You pay fees in percentage to the value traded (Maker-Fees). You can read it up here: https://www.kraken.com/features/fee-schedule/#kraken-pro
+
 ## Stay up to date!
 
 Telegram news channel for important information and changes: https://t.me/+qxmTN8rfI8FkZGU0
