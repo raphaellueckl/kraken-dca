@@ -29,9 +29,13 @@ const main = async () => {
   const privateApiPath = "/0/private/";
 
   const cashRefillDateValidityCheck = Number(DATE_OF_CASH_REFILL);
-  if (cashRefillDateValidityCheck < 1 || cashRefillDateValidityCheck > 27)
+  if (
+    !Number.isInteger(cashRefillDateValidityCheck) ||
+    cashRefillDateValidityCheck < 1 ||
+    cashRefillDateValidityCheck > 27
+  )
     throw new Error(
-      "DATE_OF_CASH_REFILL must be a number from and including 1-27! Higher days are not allowed due to technical reasons. If you want to deposit after the 27th anyways, still set DATE_OF_CASH_REFILL to 27 and NOT to 1, as that would convert all your FIAT into BTC by the first of next month!"
+      "DATE_OF_CASH_REFILL must be an integer number from and including 1-27! Higher days are not allowed due to technical reasons. If you want to deposit after the 27th anyways, still set DATE_OF_CASH_REFILL to 27 and NOT to 1, as that would convert all your FIAT into BTC by the first of next month!"
     );
 
   let cryptoPrefix = "";
@@ -306,9 +310,9 @@ const main = async () => {
         `${now.getFullYear()}-${now.getMonth() + 1}-${DATE_OF_CASH_REFILL}`
       );
       if (nextFiatDropDate < now) {
-        nextFiatDropDate.setDate(1); //Needed because later used 'setMonth' has a weird implementation logic.
+        nextFiatDropDate.setDate(1); // Needed because later used 'setMonth' has a weird implementation logic.
         nextFiatDropDate.setMonth(nextFiatDropDate.getMonth() + 1);
-        nextFiatDropDate.setDate(DATE_OF_CASH_REFILL + 1); // We add 1 to make sure we don't run out of fiat in the end. This will set the date right to the start of the next day.
+        nextFiatDropDate.setDate(DATE_OF_CASH_REFILL);
       }
 
       if (isWeekend(nextFiatDropDate))
@@ -316,6 +320,9 @@ const main = async () => {
       // If first time was SA, next day will be SU, so we have to repeat the check.
       if (isWeekend(nextFiatDropDate))
         nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1);
+
+      // Since we pin-pointed the date of the next FIAT deposit, we add 1 day extra here. This means, if your FIAT is supposed to drop on the 26th (and you can't tell the exact time, we just assume the very beginning of next day at 00:00, for the calculation of the frequency).
+      nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1);
 
       const millisUntilNextFiatDrop = nextFiatDropDate - now;
       const fiatAmount = balance[fiatPrefix + CURRENCY];
