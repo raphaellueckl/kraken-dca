@@ -68,6 +68,8 @@ German/Deutsch Version: [YouTube Video](https://youtu.be/m8KpXjiyEbQ)
 
 Yes! After every buy it checks "how much money is left", "how much time is left until the next deposit?" and when you add another 200$ you will be buying bitcoin more often (given the BTC price stays the same)!
 
-## HELP!
+## Stay up to date!
 
-You can contact me anytime on telegram: @codepleb
+Telegram news channel for important information and changes: https://t.me/+qxmTN8rfI8FkZGU0
+
+Also feel free to contact me on telegram: @codepleb
