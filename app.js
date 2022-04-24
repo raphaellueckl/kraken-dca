@@ -5,19 +5,6 @@
  *
  * Donations in BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv
  * Donations in Lightning-BTC (Telegram): codepleb@ln.tips
- *
- * This app allows to you to DCA into Bitcoin (mainnet, not lightning) on Kraken. It checks the Balance on your Kraken Account and runs as many BTC buy orders as possible and tries to split it equally over time.
- *
- * Preconditions:
- * - This script assumes, that you deposit FIAT once a month.
- * - This script assumes, that on Saturday and Sunday, no fiat deposits are possible by your bank (not a big deal if that's not the case, it won't break anything).
- *
- * Steps involved:
- * - Create an API key in your Kraken account with ONLY the options "Query Funds" and "Create & Modify Orders". Selecting other choices will be a huge risk to all of your funds and does not provide any advantage!
- * - Start the script by opening a terminal and entereing the following into a terminal (do not write the '<>' characters):
- *   Schema: KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<description of your withdrawal address> WITHDRAW_TARGET=<number> CURRENCY=<your currency, e.g. USD / EUR / CHF> SHOW_BTC_VALUE=<true> DATE_OF_CASH_REFILL=<1 to 28> node app.js
- *   Example script start: KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=CHF SHOW_BTC_VALUE=true DATE_OF_CASH_REFILL=28 node app.js
- * - Leave the script running for as long as you want to keep buying as often as possible. :) A buy order will instantly trigger as soon as you start the script (if you have some money left on the exchange).
  */
 
 const main = async () => {
@@ -26,7 +13,7 @@ const main = async () => {
   const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
   const KRAKEN_WITHDRAWAL_ADDRESS_KEY =
     process.env.KRAKEN_WITHDRAWAL_ADDRESS_KEY || false; // OPTIONAL! The "Description" (name) of the whitelisted bitcoin address on kraken. Don't set this option if you don't want automatic withdrawals.
-  const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL) || 26; // Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
+  const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL) || 26; // (Number 1-27 only!) Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
   const CURRENCY = process.env.CURRENCY || "USD"; // Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
   const WITHDRAW_TARGET = process.env.WITHDRAW_TARGET || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
   const SHOW_BTC_VALUE = process.env.SHOW_BTC_VALUE || false; // OPTIONAL! Print amount of BTC to the console after each buy order
