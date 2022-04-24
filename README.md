@@ -1,5 +1,7 @@
 # kraken-dca
 
+**DISLAIMER: You run this script completely at your own risk! I can't take any responsibility for what happens to you and all the points I make are just assumtions.**
+
 A flexible DCA executor for the cryptocurrency exchange kraken.com!
 In-Depth **English** and **German** videos below. Everyone of you can do this, trust me!
 
