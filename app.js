@@ -250,20 +250,9 @@ const main = async () => {
     while (true) {
       log("--------------------");
       logQueue.push(new Date().toLocaleString());
-      let buyOrderResponse;
-      if (!interrupted) {
-        try {
-          buyOrderResponse = await executeBuyOrder();
-        } catch (e) {
-          error("Buy order https-request failed!");
-        }
-        if (buyOrderResponse?.error?.length !== 0) {
-          error("Could not place buy order!");
-        } else {
-          logQueue.push(`Success! ${buyOrderResponse?.result?.descr?.order}`);
-        }
-      } else {
-        error("Did not buy due to previous interrupt!");
+
+      if (interrupted) {
+        error("WARN: Previous API call failed! Retrying...");
       }
 
       let btcFiatPrice = (
@@ -279,12 +268,14 @@ const main = async () => {
           "Probably invalid currency symbol! If this happens at the start when you run the script first, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
         );
         if (++interrupted >= 3) {
-          throw Error("Interrupted!");
+          throw Error("Interrupted! Too many failed API calls.");
         }
         await timer(5000);
         continue;
       }
-      logQueue.push(`BTC-Price: ${btcFiatPrice} ${CURRENCY}`);
+      logQueue.push(
+        `BTC-Price: ${Number(btcFiatPrice).toFixed(0)} ${CURRENCY}`
+      );
 
       let privateEndpoint = "Balance";
       let privateInputParameters = "";
@@ -303,6 +294,25 @@ const main = async () => {
         }
         await timer(5000);
         continue;
+      }
+
+      let buyOrderResponse;
+      try {
+        buyOrderResponse = await executeBuyOrder();
+      } catch (e) {
+        error("Buy order request failed!");
+      }
+      if (buyOrderResponse?.error?.length !== 0) {
+        error("Could not place buy order!");
+      } else {
+        log(
+          `Success! Kraken Response: ${buyOrderResponse?.result?.descr?.order}`
+        );
+        logQueue.push(
+          `Bought ${KRAKEN_MIN_BTC_ORDER_SIZE} ₿ @ ~${(
+            btcFiatPrice * KRAKEN_MIN_BTC_ORDER_SIZE
+          ).toFixed(2)} ${CURRENCY}`
+        );
       }
 
       const now = new Date();
@@ -332,8 +342,16 @@ const main = async () => {
         myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
       let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
 
-      logQueue.push(`Leftover Fiat: ${fiatAmount} ${CURRENCY}`);
-      if (SHOW_BTC_VALUE) logQueue.push(`Accumulated BTC: ${btcAmount} ₿`);
+      logQueue.push(
+        `Leftover Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`
+      );
+
+      if (SHOW_BTC_VALUE)
+        logQueue.push(
+          `Accumulated BTC: ${Number(btcAmount).toFixed(
+            String(KRAKEN_MIN_BTC_ORDER_SIZE).split(".")[1].length
+          )} ₿`
+        );
 
       if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
         timeUntilNextOrderExecuted =
@@ -342,7 +360,7 @@ const main = async () => {
         logQueue.push(
           `Next buy in ${formatTimeToHoursAndLess(
             timeUntilNextOrderExecuted
-          )} at: ${new Date(
+          )} on: ${new Date(
             now.getTime() + timeUntilNextOrderExecuted
           ).toLocaleString()}`
         );
