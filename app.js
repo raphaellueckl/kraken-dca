@@ -16,7 +16,6 @@ const main = async () => {
   const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL) || 26; // (Number 1-27 only!) Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
   const CURRENCY = process.env.CURRENCY || "USD"; // Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
   const WITHDRAW_TARGET = process.env.WITHDRAW_TARGET || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
-  const SHOW_BTC_VALUE = process.env.SHOW_BTC_VALUE || false; // OPTIONAL! Print amount of BTC to the console after each buy order
   const crypto = require("crypto");
   const https = require("https");
 
@@ -346,12 +345,11 @@ const main = async () => {
         `Leftover Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`
       );
 
-      if (SHOW_BTC_VALUE)
-        logQueue.push(
-          `Accumulated BTC: ${Number(btcAmount).toFixed(
-            String(KRAKEN_MIN_BTC_ORDER_SIZE).split(".")[1].length
-          )} ₿`
-        );
+      logQueue.push(
+        `Accumulated BTC: ${Number(btcAmount).toFixed(
+          String(KRAKEN_MIN_BTC_ORDER_SIZE).split(".")[1].length
+        )} ₿`
+      );
 
       if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
         timeUntilNextOrderExecuted =
