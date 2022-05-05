@@ -42,7 +42,7 @@ The script assumes that you deposit money once a month and if that day is a week
 
 ## A note on withdrawals
 
-Adding the parameter `KRAKEN_WITHDRAWAL_ADDRESS_KEY` enables automated withdrawals, that will ALWAYS execute after the first order in a new month. If you do not want to withdraw monthly but rather when hitting a certain target of accumulated bitcion, you can override this behavior by also providing the `WITHDRAW_TARGET` parameter! So when you define a target, monthly withdrawals are automatically disabled.
+Adding the parameter `KRAKEN_WITHDRAWAL_ADDRESS_KEY` enables automated withdrawals, that will ALWAYS execute on the first day of each new month, at the time of when you started the script. If you do not want to withdraw monthly but rather when hitting a certain target of accumulated bitcion, then you can override this behavior by also providing the `WITHDRAW_TARGET` parameter! So when you define a target, monthly withdrawals are automatically disabled.
 
 Kraken does not allow withdrawals to random addresses. You have to register them [here](https://www.kraken.com/u/funding/withdraw?asset=BTC&method=0) under `Manage withdrawal addresses`. What Kraken calls "Address description" is what you need to set as `KRAKEN_WITHDRAWAL_ADDRESS_KEY`.
 
