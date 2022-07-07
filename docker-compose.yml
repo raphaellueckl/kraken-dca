@@ -1,0 +1,11 @@
+version: '2.4'
+services:
+  app:
+    build: ./
+    container_name: kraken-dca
+    restart: on-failure:5
+    environment:
+      - KRAKEN_API_PUBLIC_KEY=<your public key>
+      - KRAKEN_API_PRIVATE_KEY=<your private key>
+      - CURRENCY=EUR
+      - DATE_OF_CASH_REFILL=5
