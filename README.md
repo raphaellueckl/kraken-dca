@@ -6,6 +6,7 @@ A flexible DCA executor for the cryptocurrency exchange kraken.com!
 In-Depth **English** and **German** videos below. Everyone of you can do this, trust me!
 
 Please send me feedback! If this is worth something to you, feel free to throw me some Sats:
+
 - via Bitcoin mainnet: `bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv`
 - via Bitcoin Lightning (telegram): `codepleb@ln.tips`
 
@@ -31,8 +32,21 @@ The script assumes that you deposit money once a month and if that day is a week
 
 ## How can I make it run? (Extremely basic videos below if you don't understand it)
 
+### Option 1 - Docker (runs on Mac, Windows, Linux)
+
+1. Download and install `docker`: https://docs.docker.com/get-docker/ (Windows users: Download and install `git` https://git-scm.com/downloads)
+1. Clone this project: `git clone https://github.com/raphaellueckl/kraken-dca.git && cd kraken-dca`
+1. Adapt the file `docker-compose.yml`: Add your kraken-keys, currency, date of cash deposit (only change the values in `environment`)
+1. Open a terminal within that folder.
+1. Run the command `docker compose up -d`
+
+If you have questions, find further info below, where the parameters are explained and/or watch the videos! :)
+
+### Option 2 - Without Docker
+
 - Create an API key in your Kraken account with ONLY the options `Query Funds` and `Create & Modify Orders`. IMPORTANT: If you want to let the script automatically withdraw funds to your private wallet, also select the option `Withdraw Funds`. Selecting other choices will be a risk to your account and does not provide any advantage!
 - Start the script by opening a terminal and entereing the following into a terminal (do not write the '<>' characters):
+
   - Schema: `KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<'description' of your withdrawal address> WITHDRAW_TARGET=<number> CURRENCY=<your currency, e.g. USD / EUR / CHF> DATE_OF_CASH_REFILL=<1 to 28> node app.js`
   - Example script start - Minimal Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=EUR DATE_OF_CASH_REFILL=24 node app.js`
   - Example script start - 'Including Withdrawals'-Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" DATE_OF_CASH_REFILL=11 node app.js`
@@ -40,13 +54,7 @@ The script assumes that you deposit money once a month and if that day is a week
 
 - Leave the script running for as long as you want to keep buying. :) A buy order will instantly trigger as soon as you start the script (if you have some money left).
 
-## A note on withdrawals
-
-Adding the parameter `KRAKEN_WITHDRAWAL_ADDRESS_KEY` enables automated withdrawals, that will ALWAYS execute on the first day of each new month, at the time of when you started the script. If you do not want to withdraw monthly but rather when hitting a certain target of accumulated bitcion, then you can override this behavior by also providing the `WITHDRAW_TARGET` parameter! So when you define a target, monthly withdrawals are automatically disabled.
-
-Kraken does not allow withdrawals to random addresses. You have to register them [here](https://www.kraken.com/u/funding/withdraw?asset=BTC&method=0) under `Manage withdrawal addresses`. What Kraken calls "Address description" is what you need to set as `KRAKEN_WITHDRAWAL_ADDRESS_KEY`.
-
-## Example on the full process for linux and macOS users
+#### Example on the full process for linux and macOS users
 
 - Open a Terminal
 - `cd ~ && mkdir kraken-dca-script && cd kraken-dca-script` ENTER
@@ -56,8 +64,14 @@ Kraken does not allow withdrawals to random addresses. You have to register them
 
 Download Node here if you don't have it: https://nodejs.org/en/download/
 
+## A note on withdrawals
+
+Adding the parameter `KRAKEN_WITHDRAWAL_ADDRESS_KEY` enables automated withdrawals, that will ALWAYS execute on the first day of each new month, at the time of when you started the script. If you do not want to withdraw monthly but rather when hitting a certain target of accumulated bitcion, then you can override this behavior by also providing the `WITHDRAW_TARGET` parameter! So when you define a target, monthly withdrawals are automatically disabled.
+
+Kraken does not allow withdrawals to random addresses. You have to register them [here](https://www.kraken.com/u/funding/withdraw?asset=BTC&method=0) under `Manage withdrawal addresses`. What Kraken calls "Address description" is what you need to set as `KRAKEN_WITHDRAWAL_ADDRESS_KEY`.
+
 ## VIDEO! - Watch my videos explaining the FULL process so that each and everyone of you can come on board!
-  
+
 English Version: [YouTube Video](https://youtu.be/1uhF3MkOyXU)
 
 German/Deutsch Version: [YouTube Video](https://youtu.be/m8KpXjiyEbQ)
