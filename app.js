@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Kraken DCA
+ * Kraken DCA Bot
  * by @codepleb
  *
  * Donations in BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv
@@ -267,7 +267,7 @@ const main = async () => {
       if (!btcFiatPrice) {
         flushLogging();
         console.error(
-          "Probably invalid currency symbol! If this happens at the start when you run the script first, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
+          "Probably invalid currency symbol! If this happens at bot startup, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
         );
         if (++interrupted >= 3 && noSuccessfulCallsYet) {
           throw Error("Interrupted! Too many failed API calls.");
