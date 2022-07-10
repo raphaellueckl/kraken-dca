@@ -20,7 +20,7 @@ const main = async () => {
   const crypto = require("crypto");
   const https = require("https");
 
-  const { log, error } = console;
+  const { log } = console;
   let logQueue = [];
 
   const isWeekend = (date) => date.getDay() % 6 == 0;
@@ -58,7 +58,7 @@ const main = async () => {
       });
 
       req.on("error", (error) => {
-        error(error);
+        console.error(error);
       });
       req.end();
     });
@@ -76,7 +76,7 @@ const main = async () => {
     try {
       data = await executeGetRequest(options);
     } catch (e) {
-      error(`Could not make GET request to ${endPointName}`);
+      console.error(`Could not make GET request to ${endPointName}`);
     }
     return JSON.parse(data);
   };
@@ -115,7 +115,7 @@ const main = async () => {
       });
 
       req.on("error", (error) => {
-        error("error happened", error);
+        console.error("error happened", error);
       });
 
       req.write(body);
@@ -146,7 +146,7 @@ const main = async () => {
         https
       );
     } catch (e) {
-      error(`Could not make POST request to ${endpoint}`);
+      console.error(`Could not make POST request to ${endpoint}`);
     }
 
     return JSON.parse(result);
@@ -252,7 +252,7 @@ const main = async () => {
       logQueue.push(new Date().toLocaleString());
 
       if (interrupted) {
-        error("WARN: Previous API call failed! Retrying...");
+        console.error("WARN: Previous API call failed! Retrying...");
       }
 
       let btcFiatPrice = (
@@ -264,7 +264,7 @@ const main = async () => {
 
       if (!btcFiatPrice) {
         flushLogging();
-        error(
+        console.error(
           "Probably invalid currency symbol! If this happens at the start when you run the script first, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
         );
         if (++interrupted >= 3) {
@@ -286,7 +286,7 @@ const main = async () => {
 
       if (!balance || Object.keys(balance).length === 0) {
         flushLogging();
-        error(
+        console.error(
           "Could not query the balance on your account. Please fix your API Key permissions on kraken!"
         );
         if (++interrupted >= 3) {
@@ -300,10 +300,10 @@ const main = async () => {
       try {
         buyOrderResponse = await executeBuyOrder();
       } catch (e) {
-        error("Buy order request failed!");
+        console.error("Buy order request failed!");
       }
       if (buyOrderResponse?.error?.length !== 0) {
-        error("Could not place buy order!");
+        console.error("Could not place buy order!");
       } else {
         log(
           `Success! Kraken Response: ${buyOrderResponse?.result?.descr?.order}`
