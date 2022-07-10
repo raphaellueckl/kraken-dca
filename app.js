@@ -59,6 +59,7 @@ const main = async () => {
 
       req.on("error", (error) => {
         console.error(error);
+        reject(error);
       });
       req.end();
     });
@@ -212,6 +213,7 @@ const main = async () => {
     });
 
   let interrupted = 0;
+  let noSuccessfulCallsYet = true;
 
   let withdrawalDate = new Date();
   withdrawalDate.setDate(1);
@@ -267,10 +269,10 @@ const main = async () => {
         console.error(
           "Probably invalid currency symbol! If this happens at the start when you run the script first, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
         );
-        if (++interrupted >= 3) {
+        if (++interrupted >= 3 && noSuccessfulCallsYet) {
           throw Error("Interrupted! Too many failed API calls.");
         }
-        await timer(5000);
+        await timer(15000);
         continue;
       }
       logQueue.push(
@@ -287,18 +289,19 @@ const main = async () => {
       if (!balance || Object.keys(balance).length === 0) {
         flushLogging();
         console.error(
-          "Could not query the balance on your account. Please fix your API Key permissions on kraken!"
+          "Could not query the balance on your account. Either incorrect API key or key-permissions on kraken!"
         );
-        if (++interrupted >= 3) {
+        if (++interrupted >= 3 && noSuccessfulCallsYet) {
           throw Error("Interrupted! Too many failed API calls.");
         }
-        await timer(5000);
+        await timer(15000);
         continue;
       }
 
       let buyOrderResponse;
       try {
         buyOrderResponse = await executeBuyOrder();
+        noSuccessfulCallsYet = false;
       } catch (e) {
         console.error("Buy order request failed!");
       }
