@@ -49,7 +49,7 @@ The bot assumes that you deposit money once a month and if that day is a weekend
 - Open a Terminal
 - `cd ~ && mkdir kraken-dca-bot && cd kraken-dca-bot` ENTER
 - `curl https://raw.githubusercontent.com/raphaellueckl/kraken-dca/master/app.js --output app.js` ENTER
-- `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" node app.js` (replace parameter values - like `CURRENCY=...` - with your custom data) ENTER
+- `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 DATE_OF_CASH_REFILL=26 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" node app.js` (replace parameter values - like `CURRENCY=...` - with your custom data) ENTER
 - DONE! If there are any errors you don't understand, update `Node` on your system. Node 17.8+ works fine.
 
 Download Node here if you don't have it: https://nodejs.org/en/download/
@@ -85,6 +85,16 @@ Yes! After every buy it checks "how much money is left", "how much time is left 
 > Isn't it more expensive to buy often compared to buy once a month, fee wise?
 
 On Kraken, no! You pay fees in percentage to the value traded (Maker-Fees). You can read it up here: https://www.kraken.com/features/fee-schedule/#kraken-pro
+
+> If my `DATE_OF_CASH_REFILL` is set to 26, but I decide to add some more FIAT on the 18th day of the month, will it consider that deposit too?
+
+Yes! Like described above, it will adjust after every buy. If you deposit more cash, after the next buy order went through, it will check how much fiat is left and how many buys it can execute until the 26th. So adding more money will lead to faster (and therefore more) buy orders.
+
+> Why is the withdrawal address not variable?
+
+Fix for that: It is, if you do it manually (restart the bot once a month, after each withdrawal, with a new address).
+
+Answer: It's not possible because of (IMHO unnecessary) complexity and also because the privacy aspect is just made up. Kraken knows all of your withdrawal addresses and they could give the government information about it anyways. It's not that new addresses are unknown to any party, so adding this feature would only benefit the marketing of this product, but not you as a user. Using new addresses for all transactions only makes sense in a true P2P environment.
 
 ## Stay up to date!
 
