@@ -45,7 +45,7 @@ const main = async () => {
     fiatPrefix = "Z";
   }
 
-  const executeGetRequest = async (options) => {
+  const executeGetRequest = (options) => {
     return new Promise((resolve, reject) => {
       const req = https.request(options, (res) => {
         let data = "";
@@ -82,7 +82,7 @@ const main = async () => {
     return JSON.parse(data);
   };
 
-  const executePostRequest = async (
+  const executePostRequest = (
     apiPostBodyData,
     privateApiPath,
     endpoint,
@@ -90,7 +90,7 @@ const main = async () => {
     signature,
     https
   ) => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const body = apiPostBodyData;
       const options = {
         hostname: "api.kraken.com",
@@ -172,8 +172,8 @@ const main = async () => {
   }
 
   const executeBuyOrder = async () => {
-    let privateEndpoint = "AddOrder";
-    let privateInputParameters = `pair=xbt${CURRENCY.toLowerCase()}&type=buy&ordertype=market&volume=${KRAKEN_MIN_BTC_ORDER_SIZE}`;
+    const privateEndpoint = "AddOrder";
+    const privateInputParameters = `pair=xbt${CURRENCY.toLowerCase()}&type=buy&ordertype=market&volume=${KRAKEN_MIN_BTC_ORDER_SIZE}`;
     let privateResponse = "";
     privateResponse = await queryPrivateApi(
       privateEndpoint,
@@ -183,8 +183,8 @@ const main = async () => {
   };
 
   const executeWithdrawal = async (amount) => {
-    let privateEndpoint = "Withdraw";
-    let privateInputParameters = `asset=XBT&key=${KRAKEN_WITHDRAWAL_ADDRESS_KEY}&amount=${amount}`;
+    const privateEndpoint = "Withdraw";
+    const privateInputParameters = `asset=XBT&key=${KRAKEN_WITHDRAWAL_ADDRESS_KEY}&amount=${amount}`;
     let privateResponse = "";
     privateResponse = await queryPrivateApi(
       privateEndpoint,
@@ -215,7 +215,7 @@ const main = async () => {
   let interrupted = 0;
   let noSuccessfulCallsYet = true;
 
-  let withdrawalDate = new Date();
+  const withdrawalDate = new Date();
   withdrawalDate.setDate(1);
   withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
 
@@ -279,8 +279,8 @@ const main = async () => {
         `BTC-Price: ${Number(btcFiatPrice).toFixed(0)} ${CURRENCY}`
       );
 
-      let privateEndpoint = "Balance";
-      let privateInputParameters = "";
+      const privateEndpoint = "Balance";
+      const privateInputParameters = "";
 
       const balance = (
         await queryPrivateApi(privateEndpoint, privateInputParameters)
