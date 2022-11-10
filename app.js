@@ -279,12 +279,19 @@ const main = async () => {
         `BTC-Price: ${Number(btcFiatPrice).toFixed(0)} ${CURRENCY}`
       );
 
-      let privateEndpoint = "Balance";
-      let privateInputParameters = "";
+      let balanceQuery = "Balance";
+      let openOrdersQuery = "OpenOrders";
 
-      const balance = (
-        await queryPrivateApi(privateEndpoint, privateInputParameters)
-      )?.result;
+      const balance = (await queryPrivateApi(balanceQuery, ""))?.result || 0;
+      let openBuyOrderFiatLocked = await queryPrivateApi(openOrdersQuery);
+      if (openBuyOrderFiatLocked?.result?.open)
+        Object.values(b.result.open)
+          .filter((e) => e.descr.pair.endsWith(CURRENCY))
+          .filter((e) => e.descr.type === "buy")
+          .map((e) => Number(e.vol) * Number(e.descr.price))
+          .reduce((a, b) => a + b);
+      else openBuyOrderFiatLocked = 0;
+      const usableBalance = balance - openBuyOrderFiatLocked;
 
       if (!balance || Object.keys(balance).length === 0) {
         flushLogging();

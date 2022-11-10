@@ -1,0 +1,88 @@
+{
+    "error": [],
+    "result": {
+        "open": {
+            "OW7O3X-3LY5Q-Y2WMOO": {
+                "refid": null,
+                "userref": 0,
+                "status": "open",
+                "opentm": 1657746596.0737813,
+                "starttm": 0,
+                "expiretm": 0,
+                "descr": {
+                    "pair": "XBTCHF",
+                    "type": "sell",
+                    "ordertype": "limit",
+                    "price": "50000.0",
+                    "price2": "0",
+                    "leverage": "none",
+                    "order": "sell 0.00100000 XBTCHF @ limit 50000.0",
+                    "close": ""
+                },
+                "vol": "0.00100000",
+                "vol_exec": "0.00000000",
+                "cost": "0.00000",
+                "fee": "0.00000",
+                "price": "0.00000",
+                "stopprice": "0.00000",
+                "limitprice": "0.00000",
+                "misc": "",
+                "oflags": "fciq"
+            },
+            "OA3U4P-PBK5G-U3XRRJ": {
+                "refid": null,
+                "userref": 0,
+                "status": "open",
+                "opentm": 1657745527.5946054,
+                "starttm": 0,
+                "expiretm": 0,
+                "descr": {
+                    "pair": "XBTCHF",
+                    "type": "buy",
+                    "ordertype": "limit",
+                    "price": "15500.0",
+                    "price2": "0",
+                    "leverage": "none",
+                    "order": "buy 0.00200000 XBTCHF @ limit 15500.0",
+                    "close": ""
+                },
+                "vol": "0.00200000",
+                "vol_exec": "0.00000000",
+                "cost": "0.00000",
+                "fee": "0.00000",
+                "price": "0.00000",
+                "stopprice": "0.00000",
+                "limitprice": "0.00000",
+                "misc": "",
+                "oflags": "fciq"
+            },
+            "OY6AJI-J34ZK-UZIKZC": {
+                "refid": null,
+                "userref": 0,
+                "status": "open",
+                "opentm": 1657744635.5314217,
+                "starttm": 0,
+                "expiretm": 0,
+                "descr": {
+                    "pair": "XBTCHF",
+                    "type": "buy",
+                    "ordertype": "limit",
+                    "price": "17000.0",
+                    "price2": "0",
+                    "leverage": "none",
+                    "order": "buy 0.00500000 XBTCHF @ limit 17000.0",
+                    "close": ""
+                },
+                "vol": "0.00500000",
+                "vol_exec": "0.00000000",
+                "cost": "0.00000",
+                "fee": "0.00000",
+                "price": "0.00000",
+                "stopprice": "0.00000",
+                "limitprice": "0.00000",
+                "misc": "",
+                "oflags": "fciq"
+            }
+        }
+    }
+}
