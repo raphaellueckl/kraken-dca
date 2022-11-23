@@ -12,7 +12,6 @@ const main = async () => {
   const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API public key
   const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
   const CURRENCY = process.env.CURRENCY || "USD"; // Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
-  const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL) || 26; // (Number 1-27 only!) Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
   const KRAKEN_WITHDRAWAL_ADDRESS_KEY =
     process.env.KRAKEN_WITHDRAWAL_ADDRESS_KEY || false; // OPTIONAL! The "Description" (name) of the whitelisted bitcoin address on kraken. Don't set this option if you don't want automatic withdrawals.
   const WITHDRAW_TARGET = process.env.WITHDRAW_TARGET || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
@@ -27,16 +26,6 @@ const main = async () => {
 
   const publicApiPath = "/0/public/";
   const privateApiPath = "/0/private/";
-
-  const cashRefillDateValidityCheck = Number(DATE_OF_CASH_REFILL);
-  if (
-    !Number.isInteger(cashRefillDateValidityCheck) ||
-    cashRefillDateValidityCheck < 1 ||
-    cashRefillDateValidityCheck > 27
-  )
-    throw new Error(
-      "DATE_OF_CASH_REFILL must be an integer number from and including 1-27! Higher days are not allowed due to technical reasons. If you want to deposit after the 27th anyways, still set DATE_OF_CASH_REFILL to 27 and NOT to 1, as that would convert all your FIAT into BTC by the first of next month!"
-    );
 
   let cryptoPrefix = "";
   let fiatPrefix = "";
@@ -212,6 +201,13 @@ const main = async () => {
       setTimeout(resolve, delay);
     });
 
+  const sleeper = async (delay) => {
+    newFiatAmount = getFiatAmount();
+    if (newFiatAmount > lastFiatAmount) {
+    }
+    await timer(delay);
+  };
+
   let interrupted = 0;
   let noSuccessfulCallsYet = true;
 
@@ -236,19 +232,82 @@ const main = async () => {
       WITHDRAW_TARGET &&
       Number(WITHDRAW_TARGET) <= btcAmount);
 
-  try {
-    log("|===========================================================|");
-    log("|                     ------------------                    |");
-    log("|                     |   Kraken DCA   |                    |");
-    log("|                     ------------------                    |");
-    log("|                        by @codepleb                       |");
-    log("|                                                           |");
-    log("| Donations BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv |");
-    log("| Donations Lightning-BTC (Telegram): codepleb@ln.tips      |");
-    log("|===========================================================|");
-    log();
-    log("DCA activated now!");
+  const fetchBtcFiatPrice = async () =>
+    (
+      await queryPublicApi(
+        "Ticker",
+        `pair=${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`
+      )
+    )?.result?.[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0];
 
+  const printInvalidCurrencyError = () => {
+    flushLogging();
+    console.error(
+      "Probably invalid currency symbol! If this happens at bot startup, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
+    );
+    if (++interrupted >= 3 && noSuccessfulCallsYet) {
+      throw Error("Interrupted! Too many failed API calls.");
+    }
+  };
+  const printBalanceQueryFailedError = () => {
+    flushLogging();
+    console.error(
+      "Could not query the balance on your account. Either incorrect API key or key-permissions on kraken!"
+    );
+    if (++interrupted >= 3 && noSuccessfulCallsYet) {
+      throw Error("Interrupted! Too many failed API calls.");
+    }
+  };
+  const getMillisUntilNextFiatDrop = () => {
+    const now = new Date();
+    const dateOfEmptyFiat = now.setDate(now.getDate() + 31);
+
+    if (isWeekend(dateOfEmptyFiat))
+      dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() + 1);
+    // If first time was SA, next day will be SU, so we have to repeat the check.
+    if (isWeekend(dateOfEmptyFiat))
+      dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() + 1);
+
+    // Since we pin-pointed the date of the next FIAT deposit, we add 1 day extra here. This means, if your FIAT is supposed to drop on the 26th (and you can't tell the exact time, we just assume the very beginning of next day at 00:00, for the calculation of the frequency).
+    dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() + 1);
+    return dateOfEmptyFiat - now;
+  };
+  const isFiatLeftForAnotherOrder = (
+    approximatedAmoutOfOrdersUntilFiatRefill
+  ) => approximatedAmoutOfOrdersUntilFiatRefill >= 1;
+  const calculateTimeUntilNextFiatOrder = () => {
+    const timeUntilNextOrderExecuted =
+      getMillisUntilNextFiatDrop() / approximatedAmoutOfOrdersUntilFiatRefill;
+
+    logQueue.push(
+      `Next buy in ${formatTimeToHoursAndLess(
+        timeUntilNextOrderExecuted
+      )} on: ${new Date(
+        now.getTime() + timeUntilNextOrderExecuted
+      ).toLocaleString()}`
+    );
+    return timeUntilNextOrderExecuted;
+  };
+  const withdrawBtc = async () => {
+    const withdrawal = await executeWithdrawal(btcAmount);
+    if (withdrawal?.result?.refid)
+      console.log(`Withdrawal executed! Date: ${new Date().toLocaleString()}!`);
+    else console.error(`Withdrawal failed! ${withdrawal?.error}`);
+  };
+
+  log("|===========================================================|");
+  log("|                     ------------------                    |");
+  log("|                     |   Kraken DCA   |                    |");
+  log("|                     ------------------                    |");
+  log("|                        by @codepleb                       |");
+  log("|                                                           |");
+  log("| Donations BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv |");
+  log("| Donations Lightning-BTC (Telegram): codepleb@ln.tips      |");
+  log("|===========================================================|");
+  log();
+  log("DCA activated now!");
+
+  try {
     while (true) {
       log("--------------------");
       logQueue.push(new Date().toLocaleString());
@@ -257,21 +316,9 @@ const main = async () => {
         console.error("WARN: Previous API call failed! Retrying...");
       }
 
-      let btcFiatPrice = (
-        await queryPublicApi(
-          "Ticker",
-          `pair=${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`
-        )
-      )?.result?.[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0];
-
+      const btcFiatPrice = await fetchBtcFiatPrice();
       if (!btcFiatPrice) {
-        flushLogging();
-        console.error(
-          "Probably invalid currency symbol! If this happens at bot startup, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
-        );
-        if (++interrupted >= 3 && noSuccessfulCallsYet) {
-          throw Error("Interrupted! Too many failed API calls.");
-        }
+        printInvalidCurrencyError();
         await timer(15000);
         continue;
       }
@@ -279,21 +326,10 @@ const main = async () => {
         `BTC-Price: ${Number(btcFiatPrice).toFixed(0)} ${CURRENCY}`
       );
 
-      const privateEndpoint = "Balance";
-      const privateInputParameters = "";
-
-      const balance = (
-        await queryPrivateApi(privateEndpoint, privateInputParameters)
-      )?.result;
+      const balance = (await queryPrivateApi("Balance", ""))?.result;
 
       if (!balance || Object.keys(balance).length === 0) {
-        flushLogging();
-        console.error(
-          "Could not query the balance on your account. Either incorrect API key or key-permissions on kraken!"
-        );
-        if (++interrupted >= 3 && noSuccessfulCallsYet) {
-          throw Error("Interrupted! Too many failed API calls.");
-        }
+        printBalanceQueryFailedError();
         await timer(15000);
         continue;
       }
@@ -318,54 +354,24 @@ const main = async () => {
         );
       }
 
-      const now = new Date();
-      const nextFiatDropDate = new Date(
-        `${now.getFullYear()}-${now.getMonth() + 1}-${DATE_OF_CASH_REFILL}`
-      );
-      if (nextFiatDropDate < now) {
-        nextFiatDropDate.setDate(1); // Needed because later used 'setMonth' has a weird implementation logic.
-        nextFiatDropDate.setMonth(nextFiatDropDate.getMonth() + 1);
-        nextFiatDropDate.setDate(DATE_OF_CASH_REFILL);
-      }
-
-      if (isWeekend(nextFiatDropDate))
-        nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1);
-      // If first time was SA, next day will be SU, so we have to repeat the check.
-      if (isWeekend(nextFiatDropDate))
-        nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1);
-
-      // Since we pin-pointed the date of the next FIAT deposit, we add 1 day extra here. This means, if your FIAT is supposed to drop on the 26th (and you can't tell the exact time, we just assume the very beginning of next day at 00:00, for the calculation of the frequency).
-      nextFiatDropDate.setDate(nextFiatDropDate.getDate() + 1);
-
-      const millisUntilNextFiatDrop = nextFiatDropDate - now;
       const fiatAmount = balance[fiatPrefix + CURRENCY];
       const btcAmount = balance.XXBT;
       const myFiatValueInBtc = +fiatAmount / +btcFiatPrice;
       const approximatedAmoutOfOrdersUntilFiatRefill =
         myFiatValueInBtc / KRAKEN_MIN_BTC_ORDER_SIZE;
-      let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
 
       logQueue.push(
         `Leftover Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`
       );
-
       logQueue.push(
         `Accumulated BTC: ${Number(btcAmount).toFixed(
           String(KRAKEN_MIN_BTC_ORDER_SIZE).split(".")[1].length
         )} ₿`
       );
 
-      if (approximatedAmoutOfOrdersUntilFiatRefill >= 1) {
-        timeUntilNextOrderExecuted =
-          millisUntilNextFiatDrop / approximatedAmoutOfOrdersUntilFiatRefill;
-
-        logQueue.push(
-          `Next buy in ${formatTimeToHoursAndLess(
-            timeUntilNextOrderExecuted
-          )} on: ${new Date(
-            now.getTime() + timeUntilNextOrderExecuted
-          ).toLocaleString()}`
-        );
+      let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
+      if (isFiatLeftForAnotherOrder(approximatedAmoutOfOrdersUntilFiatRefill)) {
+        timeUntilNextOrderExecuted = calculateTimeUntilNextFiatOrder();
       } else {
         logQueue.push(
           `${new Date().toLocaleString()} Out of fiat money! Checking again in one hour...`
@@ -375,15 +381,10 @@ const main = async () => {
       flushLogging();
 
       if (isWithdrawalDue(btcAmount)) {
-        const withdrawal = await executeWithdrawal(btcAmount);
-        if (withdrawal?.result?.refid)
-          console.log(
-            `Withdrawal executed! Date: ${new Date().toLocaleString()}!`
-          );
-        else console.error(`Withdrawal failed! ${withdrawal?.error}`);
+        withdrawBtc();
       }
       interrupted = 0;
-      await timer(timeUntilNextOrderExecuted);
+      await sleeper(timeUntilNextOrderExecuted);
     }
   } catch (e) {
     log();
