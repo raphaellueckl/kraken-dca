@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+const crypto = require("crypto");
+const https = require("https");
+
 /**
  * Kraken DCA Bot
  * by @codepleb
@@ -7,7 +10,7 @@
  * Donations in Lightning-BTC (Telegram): codepleb@ln.tips
  */
 
-const main = () => {
+const main = async () => {
   const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API public key
   const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
   const CURRENCY = process.env.CURRENCY || "USD"; // Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
@@ -17,11 +20,14 @@ const main = () => {
   const WITHDRAW_TARGET = process.env.WITHDRAW_TARGET || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
   const FIAT_CHECK_DELAY = process.env.FIAT_CHECK_DELAY || 15 * 1000; // OPTIONAL! Custom fiat check delay.
 
-  const crypto = require("crypto");
-  const https = require("https");
-
   const { log } = console;
   let logQueue = [];
+
+  let potentialApiTimeouts = 0;
+  let lastFiatBalance = Number.NEGATIVE_INFINITY;
+  let nextOrderIn = Number.NEGATIVE_INFINITY;
+  let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
+  let dateOfEmptyFiat = new Date();
 
   const isWeekend = (date) => date.getDay() % 6 == 0;
 
@@ -143,13 +149,13 @@ const main = () => {
     return JSON.parse(result);
   };
 
-  function createAuthenticationSignature(
+  const createAuthenticationSignature = (
     apiPrivateKey,
     apiPath,
     endPointName,
     nonce,
     apiPostBodyData
-  ) {
+  ) => {
     const apiPost = nonce + apiPostBodyData;
     const secret = Buffer.from(apiPrivateKey, "base64");
     const sha256 = crypto.createHash("sha256");
@@ -159,7 +165,7 @@ const main = () => {
       .update(apiPath + endPointName + hash256, "binary")
       .digest("base64");
     return signatureString;
-  }
+  };
 
   const executeBuyOrder = async () => {
     const privateEndpoint = "AddOrder";
@@ -201,13 +207,6 @@ const main = () => {
     new Promise((resolve) => {
       setTimeout(resolve, delay);
     });
-
-  const sleeper = async (delay) => {
-    newFiatAmount = getFiatAmount();
-    if (newFiatAmount > lastFiatAmount) {
-    }
-    await timer(delay);
-  };
 
   let interrupted = 0;
   let noSuccessfulCallsYet = true;
@@ -298,7 +297,6 @@ const main = () => {
     else console.error(`Withdrawal failed! ${withdrawal?.error}`);
   };
 
-  let dateOfEmptyFiat = new Date();
   const estimateNextFiatDepositDate = () => {
     const now = new Date();
     dateOfEmptyFiat = now.setDate(now.getDate() + 31);
@@ -337,124 +335,91 @@ const main = () => {
   log();
   log("DCA activated now!");
 
-  let potentialApiTimeouts = 0;
+  const executeBuyOrder2 = async () => {
+    let buyOrderResponse;
+    try {
+      buyOrderResponse = await executeBuyOrder();
+      noSuccessfulCallsYet = false;
+    } catch (e) {
+      console.error("Buy order request failed!");
+    }
+    if (buyOrderResponse?.error?.length !== 0) {
+      console.error("Could not place buy order!");
+    } else {
+      log(
+        `Success! Kraken Response: ${buyOrderResponse?.result?.descr?.order}`
+      );
+      logQueue.push(
+        `Bought ${KRAKEN_BTC_ORDER_SIZE} ₿ @ ~${(
+          btcFiatPrice * KRAKEN_BTC_ORDER_SIZE
+        ).toFixed(2)} ${CURRENCY}`
+      );
+    }
+  };
 
-  try {
-    const balanceWatcher = async () => {
-      let lastBalance = Number.NEGATIVE_INFINITY;
-      let nextOrderIn = Number.NEGATIVE_INFINITY;
-      let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
-      while (true) {
-        const balance = (await queryPrivateApi("Balance", ""))?.result;
-        if (!balance || Object.keys(balance).length === 0) {
-          printBalanceQueryFailedError();
-          await timer(15000);
-          continue;
-        }
-        if (balance > lastBalance) {
-          estimateNextFiatDepositDate();
-          lastBalance = balance;
-        }
-
-        lastBtcFiatPrice = await fetchBtcFiatPrice();
-        if (!lastBtcFiatPrice) {
-          printInvalidCurrencyError();
-          ++potentialApiTimeouts;
-          await timer(15000);
-          continue;
-        }
-        logQueue.push(`BTC-Price: ${lastBtcFiatPrice.toFixed(0)} ${CURRENCY}`);
-
-        const fiatAmount = balance[fiatPrefix + CURRENCY];
-        const btcAmount = balance.XXBT;
-        const myFiatValueInBtc = +fiatAmount / lastBtcFiatPrice;
-        const approximatedAmoutOfOrdersUntilFiatRefill =
-          myFiatValueInBtc / KRAKEN_BTC_ORDER_SIZE;
-
-        logQueue.push(
-          `Leftover Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`
-        );
-        logQueue.push(
-          `Accumulated BTC: ${Number(btcAmount).toFixed(
-            String(KRAKEN_BTC_ORDER_SIZE).split(".")[1].length
-          )} ₿`
-        );
-
-        let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
-        if (
-          isFiatLeftForAnotherOrder(approximatedAmoutOfOrdersUntilFiatRefill)
-        ) {
-          timeUntilNextOrderExecuted = calculateTimeUntilNextFiatOrder();
-        } else {
-          logQueue.push(
-            `${new Date().toLocaleString()} Out of fiat money! Checking again in one hour...`
-          );
-        }
-
-        if (nextOrderIn <= FIAT_CHECK_DELAY) {
-          executeBuyOrder2();
-          evaluateMillisUntilNextOrder();
-        }
-
-        if (isWithdrawalDue(btcAmount + KRAKEN_BTC_ORDER_SIZE)) {
-          withdrawBtc();
-        }
-
-        flushLogging();
-
-        potentialApiTimeouts = 0;
-        // await timer(timeUntilNextOrderExecuted);
-        // await sleeper(timeUntilNextOrderExecuted);
-        await timer(FIAT_CHECK_DELAY);
-      }
-    };
-    balanceWatcher();
-
-    const executeBuyOrder2 = async () => {
-      if (interruptThisRun) {
-        interruptThisRun = false;
-        return;
-      }
-      log("--------------------");
-      logQueue.push(new Date().toLocaleString());
-
-      if (interrupted) {
-        console.error("WARN: Previous API call failed! Retrying...");
-      }
-
+  const runner = async () => {
+    while (true) {
       const balance = (await queryPrivateApi("Balance", ""))?.result;
       if (!balance || Object.keys(balance).length === 0) {
         printBalanceQueryFailedError();
-        ++potentialApiTimeouts;
         await timer(15000);
-        return;
+        continue;
       }
 
-      let buyOrderResponse;
-      try {
-        buyOrderResponse = await executeBuyOrder();
-        noSuccessfulCallsYet = false;
-      } catch (e) {
-        console.error("Buy order request failed!");
+      const fiatAmount = balance[fiatPrefix + CURRENCY];
+      if (fiatAmount > lastFiatBalance) {
+        estimateNextFiatDepositDate();
+        lastFiatBalance = fiatAmount;
       }
-      if (buyOrderResponse?.error?.length !== 0) {
-        console.error("Could not place buy order!");
+
+      lastBtcFiatPrice = await fetchBtcFiatPrice();
+      if (!lastBtcFiatPrice) {
+        printInvalidCurrencyError();
+        ++potentialApiTimeouts;
+        await timer(15000);
+        continue;
+      }
+      logQueue.push(`BTC-Price: ${lastBtcFiatPrice.toFixed(0)} ${CURRENCY}`);
+
+      const btcAmount = balance.XXBT;
+      const myFiatValueInBtc = +fiatAmount / lastBtcFiatPrice;
+      const approximatedAmoutOfOrdersUntilFiatRefill =
+        myFiatValueInBtc / KRAKEN_BTC_ORDER_SIZE;
+
+      logQueue.push(
+        `Leftover Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`
+      );
+      logQueue.push(
+        `Accumulated BTC: ${Number(btcAmount).toFixed(
+          String(KRAKEN_BTC_ORDER_SIZE).split(".")[1].length
+        )} ₿`
+      );
+
+      let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
+      if (isFiatLeftForAnotherOrder(approximatedAmoutOfOrdersUntilFiatRefill)) {
+        timeUntilNextOrderExecuted = calculateTimeUntilNextFiatOrder();
       } else {
-        log(
-          `Success! Kraken Response: ${buyOrderResponse?.result?.descr?.order}`
-        );
         logQueue.push(
-          `Bought ${KRAKEN_BTC_ORDER_SIZE} ₿ @ ~${(
-            btcFiatPrice * KRAKEN_BTC_ORDER_SIZE
-          ).toFixed(2)} ${CURRENCY}`
+          `${new Date().toLocaleString()} Out of fiat money! Checking again in one hour...`
         );
       }
-    };
-  } catch (e) {
-    log();
-    log("An error occured and the app was shut down! :(");
-    log(e);
-  }
+
+      if (nextOrderIn <= FIAT_CHECK_DELAY) {
+        executeBuyOrder2();
+        evaluateMillisUntilNextOrder();
+      }
+
+      if (isWithdrawalDue(btcAmount + KRAKEN_BTC_ORDER_SIZE)) {
+        withdrawBtc();
+      }
+
+      flushLogging();
+
+      potentialApiTimeouts = 0;
+      await timer(FIAT_CHECK_DELAY);
+    }
+  };
+  await runner();
 };
 
 main();
