@@ -28,6 +28,7 @@ const main = async () => {
   let nextOrderIn = Number.NEGATIVE_INFINITY;
   let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
   let dateOfEmptyFiat = new Date();
+  let dateOfNextOrder = new Date();
 
   const isWeekend = (date) => date.getDay() % 6 == 0;
 
@@ -315,11 +316,20 @@ const main = async () => {
   };
 
   const evaluateMillisUntilNextOrder = () => {
-    const nextFiatDepositInMillis = getMillisUntilNextFiatDeposit();
+    nextOrderIn = getMillisUntilNextFiatDeposit();
     if (lastBtcFiatPrice > 0) {
-      lastBtcFiatPrice / lastBalance;
+      lastBtcFiatPrice / fiatAmount;
       const approximatedAmoutOfOrdersUntilFiatRefill =
-        lastBalance / KRAKEN_BTC_ORDER_SIZE;
+        fiatAmount / KRAKEN_BTC_ORDER_SIZE;
+
+      const now = Date.now();
+      dateOfNextOrder = new Date(
+        (dateOfEmptyFiat.getDate() - now) /
+          approximatedAmoutOfOrdersUntilFiatRefill +
+          now
+      );
+    } else {
+      console.error("Last BTC fiat price was not present!");
     }
   };
 
@@ -366,7 +376,7 @@ const main = async () => {
         continue;
       }
 
-      const fiatAmount = balance[fiatPrefix + CURRENCY];
+      fiatAmount = balance[fiatPrefix + CURRENCY];
       if (fiatAmount > lastFiatBalance) {
         estimateNextFiatDepositDate();
         lastFiatBalance = fiatAmount;
@@ -395,16 +405,12 @@ const main = async () => {
         )} ₿`
       );
 
-      let timeUntilNextOrderExecuted = 1000 * 60 * 60; // Default: 1h waiting time if out of money
-      if (isFiatLeftForAnotherOrder(approximatedAmoutOfOrdersUntilFiatRefill)) {
-        timeUntilNextOrderExecuted = calculateTimeUntilNextFiatOrder();
-      } else {
-        logQueue.push(
-          `${new Date().toLocaleString()} Out of fiat money! Checking again in one hour...`
-        );
-      }
-
-      if (nextOrderIn <= FIAT_CHECK_DELAY) {
+      // ---|--o|---|---|---|---|-o-|---
+      //  x  ===  x   x   x   x  ===  x
+      if (
+        dateOfNextOrder >= new Date(Date.now() - FIAT_CHECK_DELAY) &&
+        dateOfNextOrder < Date.now()
+      ) {
         executeBuyOrder2();
         evaluateMillisUntilNextOrder();
       }
