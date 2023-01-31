@@ -255,36 +255,7 @@ const main = async () => {
       throw Error("Interrupted! Too many failed API calls.");
     }
   };
-  const getMillisUntilNextFiatDrop = () => {
-    const now = new Date();
-    const dateOfEmptyFiat = now.setDate(now.getDate() + 31);
 
-    if (isWeekend(dateOfEmptyFiat))
-      dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() + 1);
-    // If first time was SA, next day will be SU, so we have to repeat the check.
-    if (isWeekend(dateOfEmptyFiat))
-      dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() + 1);
-
-    // Since we pin-pointed the date of the next FIAT deposit, we add 1 day extra here. This means, if your FIAT is supposed to drop on the 26th (and you can't tell the exact time, we just assume the very beginning of next day at 00:00, for the calculation of the frequency).
-    dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() + 1);
-    return dateOfEmptyFiat - now;
-  };
-  const isFiatLeftForAnotherOrder = (
-    approximatedAmoutOfOrdersUntilFiatRefill
-  ) => approximatedAmoutOfOrdersUntilFiatRefill >= 1;
-  const calculateTimeUntilNextFiatOrder = () => {
-    const timeUntilNextOrderExecuted =
-      getMillisUntilNextFiatDrop() / approximatedAmoutOfOrdersUntilFiatRefill;
-
-    logQueue.push(
-      `Next buy in ${formatTimeToHoursAndLess(
-        timeUntilNextOrderExecuted
-      )} on: ${new Date(
-        now.getTime() + timeUntilNextOrderExecuted
-      ).toLocaleString()}`
-    );
-    return timeUntilNextOrderExecuted;
-  };
   const withdrawBtc = async (btcAmount) => {
     const withdrawal = await executeWithdrawal(btcAmount);
     if (withdrawal?.result?.refid)
@@ -312,9 +283,15 @@ const main = async () => {
 
       const now = Date.now();
       dateOfNextOrder = new Date(
-        (dateOfEmptyFiat.getDate() - now) /
+        (dateOfEmptyFiat.getTime() - now) /
           approximatedAmoutOfOrdersUntilFiatRefill +
           now
+      );
+
+      logQueue.push(
+        `Next order in: ${formatTimeToHoursAndLess(
+          dateOfNextOrder.getTime() - Date.now()
+        )} @ ${dateOfNextOrder.toLocaleString().split(", ")[1]}`
       );
     } else {
       console.error("Last BTC fiat price was not present!");
