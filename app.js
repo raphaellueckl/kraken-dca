@@ -287,12 +287,6 @@ const main = async () => {
           approximatedAmoutOfOrdersUntilFiatRefill +
           now
       );
-
-      logQueue.push(
-        `Next order in: ${formatTimeToHoursAndLess(
-          dateOfNextOrder.getTime() - Date.now()
-        )} @ ${dateOfNextOrder.toLocaleString().split(", ")[1]}`
-      );
     } else {
       console.error("Last BTC fiat price was not present!");
     }
@@ -341,7 +335,7 @@ const main = async () => {
 
   const runner = async () => {
     while (true) {
-      let printCurrentLogs = false;
+      let buyOrderExecuted = false;
       const balance = (await queryPrivateApi("Balance", ""))?.result;
       if (!balance || Object.keys(balance).length === 0) {
         printBalanceQueryFailedError();
@@ -374,7 +368,7 @@ const main = async () => {
       ) {
         await buyBitcoin(logQueue);
         evaluateMillisUntilNextOrder();
-        printCurrentLogs = true;
+        buyOrderExecuted = true;
       }
 
       const newBtcAmount = btcAmount + KRAKEN_BTC_ORDER_SIZE;
@@ -384,11 +378,17 @@ const main = async () => {
         )} ₿`
       );
 
+      logQueue.push(
+        `Next order in: ${formatTimeToHoursAndLess(
+          dateOfNextOrder.getTime() - Date.now()
+        )} @ ${dateOfNextOrder.toLocaleString().split(", ")[1]}`
+      );
+
       if (isWithdrawalDue(newBtcAmount)) {
         await withdrawBtc();
       }
 
-      flushLogging(printCurrentLogs);
+      flushLogging(buyOrderExecuted);
 
       await timer(FIAT_CHECK_DELAY);
     }
