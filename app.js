@@ -14,14 +14,15 @@ const main = async () => {
   const KRAKEN_API_PUBLIC_KEY = process.env.KRAKEN_API_PUBLIC_KEY; // Kraken API public key
   const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
   const CURRENCY = process.env.CURRENCY || "USD"; // Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
-  const KRAKEN_BTC_ORDER_SIZE = process.env.KRAKEN_BTC_ORDER_SIZE || 0.0001; // Optional! Changing this value is not recommended. Kraken currently has a minimum order size of 0.0001 BTC. You might consider changing this, if your monthly investment exceeds 6 figures.
+  const KRAKEN_BTC_ORDER_SIZE =
+    Number(process.env.KRAKEN_BTC_ORDER_SIZE) || 0.0001; // Optional! Changing this value is not recommended. Kraken currently has a minimum order size of 0.0001 BTC. You might consider changing this, if your monthly investment exceeds 6 figures.
   const KRAKEN_WITHDRAWAL_ADDRESS_KEY =
     process.env.KRAKEN_WITHDRAWAL_ADDRESS_KEY || false; // OPTIONAL! The "Description" (name) of the whitelisted bitcoin address on kraken. Don't set this option if you don't want automatic withdrawals.
-  const WITHDRAW_TARGET = process.env.WITHDRAW_TARGET || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
-  const FIAT_CHECK_DELAY = process.env.FIAT_CHECK_DELAY || 15 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
+  const WITHDRAW_TARGET = Number(process.env.WITHDRAW_TARGET) || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
+  const FIAT_CHECK_DELAY = Number(process.env.FIAT_CHECK_DELAY) || 15 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
 
   const { log } = console;
-  let logQueue = [];
+  let logQueue = [`[${new Date().toLocaleString()}]`];
 
   const isWeekend = (date) => date.getDay() % 6 == 0;
 
@@ -194,7 +195,7 @@ const main = async () => {
 
   const flushLogging = (printLogs) => {
     if (printLogs) log(logQueue.join(" > "));
-    logQueue = [];
+    logQueue = [`[${new Date().toLocaleString()}]`];
   };
 
   const timer = (delay) =>
@@ -224,7 +225,7 @@ const main = async () => {
       isWithdrawalDateDue()) ||
     (KRAKEN_WITHDRAWAL_ADDRESS_KEY &&
       WITHDRAW_TARGET &&
-      Number(WITHDRAW_TARGET) <= btcAmount);
+      WITHDRAW_TARGET <= btcAmount);
 
   const fetchBtcFiatPrice = async () =>
     Number(
@@ -349,7 +350,9 @@ const main = async () => {
     if (buyOrderResponse?.error?.length !== 0) {
       console.error("Could not place buy order!");
     } else {
-      logQueue.push(`${buyOrderResponse?.result?.descr?.order} > Success`);
+      logQueue.push(
+        `Kraken: ${buyOrderResponse?.result?.descr?.order} > Success!`
+      );
       logQueue.push(
         `Bought for ~${(lastBtcFiatPrice * KRAKEN_BTC_ORDER_SIZE).toFixed(
           2
@@ -370,7 +373,7 @@ const main = async () => {
         continue;
       }
       fiatAmount = Number(balance[fiatPrefix + CURRENCY]);
-      logQueue.push(`Found Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
+      logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
       if (fiatAmount > lastFiatBalance || firstRun) {
         estimateNextFiatDepositDate();
         lastFiatBalance = fiatAmount;
@@ -395,7 +398,7 @@ const main = async () => {
         dateOfNextOrder >= new Date(now - FIAT_CHECK_DELAY) &&
         dateOfNextOrder < now
       ) {
-        executeBuyOrder2(logQueue);
+        await executeBuyOrder2(logQueue);
         evaluateMillisUntilNextOrder();
         printLogs = true;
       }
@@ -408,8 +411,7 @@ const main = async () => {
       );
 
       if (isWithdrawalDue(btcAmount + KRAKEN_BTC_ORDER_SIZE)) {
-        withdrawBtc();
-        printLogs = true;
+        await withdrawBtc();
       }
 
       flushLogging(printLogs);
