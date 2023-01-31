@@ -333,13 +333,12 @@ const main = async () => {
   log();
   log("DCA activated now!");
 
-  let potentialApiTimeouts = 0;
   let lastFiatBalance = Number.NEGATIVE_INFINITY;
   let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
   let dateOfEmptyFiat = new Date();
   let dateOfNextOrder = new Date();
 
-  const executeBuyOrder2 = async () => {
+  const buyBitcoin = async () => {
     let buyOrderResponse;
     try {
       buyOrderResponse = await executeBuyOrder();
@@ -365,7 +364,7 @@ const main = async () => {
 
   const runner = async () => {
     while (true) {
-      let printLogs = false;
+      let printCurrentLogs = false;
       const balance = (await queryPrivateApi("Balance", ""))?.result;
       if (!balance || Object.keys(balance).length === 0) {
         printBalanceQueryFailedError();
@@ -383,14 +382,12 @@ const main = async () => {
       lastBtcFiatPrice = await fetchBtcFiatPrice();
       if (!lastBtcFiatPrice) {
         printInvalidCurrencyError();
-        ++potentialApiTimeouts;
         await timer(15000);
         continue;
       }
       logQueue.push(`BTC Price: ${lastBtcFiatPrice.toFixed(2)} ${CURRENCY}`);
 
       const btcAmount = Number(balance.XXBT);
-
       const now = Date.now();
       // ---|--o|---|---|---|---|-o-|---
       //  x  ===  x   x   x   x  ===  x
@@ -398,25 +395,24 @@ const main = async () => {
         dateOfNextOrder >= new Date(now - FIAT_CHECK_DELAY) &&
         dateOfNextOrder < now
       ) {
-        await executeBuyOrder2(logQueue);
+        await buyBitcoin(logQueue);
         evaluateMillisUntilNextOrder();
-        printLogs = true;
+        printCurrentLogs = true;
       }
 
       const newBtcAmount = btcAmount + KRAKEN_BTC_ORDER_SIZE;
       logQueue.push(
-        `Accumulated BTC: ${Number(btcAmount).toFixed(
+        `Accumulated BTC: ${newBtcAmount.toFixed(
           String(KRAKEN_BTC_ORDER_SIZE).split(".")[1].length
         )} ₿`
       );
 
-      if (isWithdrawalDue(btcAmount + KRAKEN_BTC_ORDER_SIZE)) {
+      if (isWithdrawalDue(newBtcAmount)) {
         await withdrawBtc();
       }
 
-      flushLogging(printLogs);
+      flushLogging(printCurrentLogs);
 
-      potentialApiTimeouts = 0;
       await timer(FIAT_CHECK_DELAY);
     }
   };
