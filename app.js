@@ -53,7 +53,7 @@ const main = async () => {
   log("|                     ------------------                    |");
   log("|                        by @codepleb                       |");
   log("|                                                           |");
-  log("| Donations BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv |");
+  log("| Donations BTC: bc1q4et8wxhsguz8hsm46pnuvq7h68up8mlw6fhqyt |");
   log("| Donations Lightning-BTC (Telegram): codepleb@ln.tips      |");
   log("|===========================================================|");
   log();
