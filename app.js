@@ -21,9 +21,6 @@ const main = async () => {
   const WITHDRAW_TARGET = Number(process.env.WITHDRAW_TARGET) || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
   const FIAT_CHECK_DELAY = Number(process.env.FIAT_CHECK_DELAY) || 15 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
 
-  const { log } = console;
-  let logQueue = [`[${new Date().toLocaleString()}]`];
-
   const publicApiPath = "/0/public/";
   const privateApiPath = "/0/private/";
 
@@ -34,12 +31,21 @@ const main = async () => {
     fiatPrefix = "Z";
   }
 
-  let interrupted = 0;
-  let noSuccessfulCallsYet = true;
+  const { log } = console;
 
   const withdrawalDate = new Date();
   withdrawalDate.setDate(1);
   withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
+
+  let lastFiatBalance = Number.NEGATIVE_INFINITY;
+  let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
+  let dateOfEmptyFiat = new Date();
+  let dateOfNextOrder = new Date();
+
+  let logQueue = [`[${new Date().toLocaleString()}]`];
+  let firstRun = true;
+  let interrupted = 0;
+  let noSuccessfulCallsYet = true;
 
   log("|===========================================================|");
   log("|                     ------------------                    |");
@@ -52,35 +58,6 @@ const main = async () => {
   log("|===========================================================|");
   log();
   log("DCA activated now!");
-
-  let lastFiatBalance = Number.NEGATIVE_INFINITY;
-  let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
-  let dateOfEmptyFiat = new Date();
-  let dateOfNextOrder = new Date();
-
-  const buyBitcoin = async () => {
-    let buyOrderResponse;
-    try {
-      buyOrderResponse = await executeBuyOrder();
-      noSuccessfulCallsYet = false;
-    } catch (e) {
-      console.error("Buy order request failed!");
-    }
-    if (buyOrderResponse?.error?.length !== 0) {
-      console.error("Could not place buy order!");
-    } else {
-      logQueue.push(
-        `Kraken: ${buyOrderResponse?.result?.descr?.order} > Success!`
-      );
-      logQueue.push(
-        `Bought for ~${(lastBtcFiatPrice * KRAKEN_BTC_ORDER_SIZE).toFixed(
-          2
-        )} ${CURRENCY}`
-      );
-    }
-  };
-
-  let firstRun = true;
 
   const runner = async () => {
     while (true) {
@@ -271,6 +248,28 @@ const main = async () => {
     return signatureString;
   };
 
+  const buyBitcoin = async () => {
+    let buyOrderResponse;
+    try {
+      buyOrderResponse = await executeBuyOrder();
+      noSuccessfulCallsYet = false;
+    } catch (e) {
+      console.error("Buy order request failed!");
+    }
+    if (buyOrderResponse?.error?.length !== 0) {
+      console.error("Could not place buy order!");
+    } else {
+      logQueue.push(
+        `Kraken: ${buyOrderResponse?.result?.descr?.order} > Success!`
+      );
+      logQueue.push(
+        `Bought for ~${(lastBtcFiatPrice * KRAKEN_BTC_ORDER_SIZE).toFixed(
+          2
+        )} ${CURRENCY}`
+      );
+    }
+  };
+
   const executeBuyOrder = async () => {
     const privateEndpoint = "AddOrder";
     const privateInputParameters = `pair=xbt${CURRENCY.toLowerCase()}&type=buy&ordertype=market&volume=${KRAKEN_BTC_ORDER_SIZE}`;
@@ -348,6 +347,7 @@ const main = async () => {
       throw Error("Interrupted! Too many failed API calls.");
     }
   };
+
   const printBalanceQueryFailedError = () => {
     flushLogging();
     console.error(
