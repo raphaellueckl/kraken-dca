@@ -24,8 +24,6 @@ const main = async () => {
   const { log } = console;
   let logQueue = [`[${new Date().toLocaleString()}]`];
 
-  const isWeekend = (date) => date.getDay() % 6 == 0;
-
   const publicApiPath = "/0/public/";
   const privateApiPath = "/0/private/";
 
@@ -35,6 +33,117 @@ const main = async () => {
     cryptoPrefix = "X";
     fiatPrefix = "Z";
   }
+
+  let interrupted = 0;
+  let noSuccessfulCallsYet = true;
+
+  const withdrawalDate = new Date();
+  withdrawalDate.setDate(1);
+  withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
+
+  log("|===========================================================|");
+  log("|                     ------------------                    |");
+  log("|                     |   Kraken DCA   |                    |");
+  log("|                     ------------------                    |");
+  log("|                        by @codepleb                       |");
+  log("|                                                           |");
+  log("| Donations BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv |");
+  log("| Donations Lightning-BTC (Telegram): codepleb@ln.tips      |");
+  log("|===========================================================|");
+  log();
+  log("DCA activated now!");
+
+  let lastFiatBalance = Number.NEGATIVE_INFINITY;
+  let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
+  let dateOfEmptyFiat = new Date();
+  let dateOfNextOrder = new Date();
+
+  const buyBitcoin = async () => {
+    let buyOrderResponse;
+    try {
+      buyOrderResponse = await executeBuyOrder();
+      noSuccessfulCallsYet = false;
+    } catch (e) {
+      console.error("Buy order request failed!");
+    }
+    if (buyOrderResponse?.error?.length !== 0) {
+      console.error("Could not place buy order!");
+    } else {
+      logQueue.push(
+        `Kraken: ${buyOrderResponse?.result?.descr?.order} > Success!`
+      );
+      logQueue.push(
+        `Bought for ~${(lastBtcFiatPrice * KRAKEN_BTC_ORDER_SIZE).toFixed(
+          2
+        )} ${CURRENCY}`
+      );
+    }
+  };
+
+  let firstRun = true;
+
+  const runner = async () => {
+    while (true) {
+      let buyOrderExecuted = false;
+      const balance = (await queryPrivateApi("Balance", ""))?.result;
+      if (!balance || Object.keys(balance).length === 0) {
+        printBalanceQueryFailedError();
+        await timer(15000);
+        continue;
+      }
+      fiatAmount = Number(balance[fiatPrefix + CURRENCY]);
+      logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
+      if (fiatAmount > lastFiatBalance || firstRun) {
+        estimateNextFiatDepositDate();
+        lastFiatBalance = fiatAmount;
+        firstRun = false;
+      }
+
+      lastBtcFiatPrice = await fetchBtcFiatPrice();
+      if (!lastBtcFiatPrice) {
+        printInvalidCurrencyError();
+        await timer(15000);
+        continue;
+      }
+      logQueue.push(`BTC Price: ${lastBtcFiatPrice.toFixed(2)} ${CURRENCY}`);
+
+      const btcAmount = Number(balance.XXBT);
+      const now = Date.now();
+      // ---|--o|---|---|---|---|-o-|---
+      //  x  ===  x   x   x   x  ===  x
+      if (
+        dateOfNextOrder >= new Date(now - FIAT_CHECK_DELAY) &&
+        dateOfNextOrder < now
+      ) {
+        await buyBitcoin(logQueue);
+        evaluateMillisUntilNextOrder();
+        buyOrderExecuted = true;
+      }
+
+      const newBtcAmount = btcAmount + KRAKEN_BTC_ORDER_SIZE;
+      logQueue.push(
+        `Accumulated BTC: ${newBtcAmount.toFixed(
+          String(KRAKEN_BTC_ORDER_SIZE).split(".")[1].length
+        )} ₿`
+      );
+
+      logQueue.push(
+        `Next order in: ${formatTimeToHoursAndLess(
+          dateOfNextOrder.getTime() - Date.now()
+        )} @ ${dateOfNextOrder.toLocaleString().split(", ")[1]}`
+      );
+
+      flushLogging(buyOrderExecuted);
+
+      if (buyOrderExecuted && isWithdrawalDue(newBtcAmount)) {
+        await withdrawBtc(newBtcAmount);
+      }
+
+      await timer(FIAT_CHECK_DELAY);
+    }
+  };
+
+  const isWeekend = (date) => date.getDay() % 6 == 0;
 
   const executeGetRequest = (options) => {
     return new Promise((resolve, reject) => {
@@ -203,13 +312,6 @@ const main = async () => {
       setTimeout(resolve, delay);
     });
 
-  let interrupted = 0;
-  let noSuccessfulCallsYet = true;
-
-  const withdrawalDate = new Date();
-  withdrawalDate.setDate(1);
-  withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
-
   const isWithdrawalDateDue = () => {
     if (new Date() > withdrawalDate) {
       withdrawalDate.setDate(1);
@@ -290,108 +392,6 @@ const main = async () => {
       );
     } else {
       console.error("Last BTC fiat price was not present!");
-    }
-  };
-
-  log("|===========================================================|");
-  log("|                     ------------------                    |");
-  log("|                     |   Kraken DCA   |                    |");
-  log("|                     ------------------                    |");
-  log("|                        by @codepleb                       |");
-  log("|                                                           |");
-  log("| Donations BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv |");
-  log("| Donations Lightning-BTC (Telegram): codepleb@ln.tips      |");
-  log("|===========================================================|");
-  log();
-  log("DCA activated now!");
-
-  let lastFiatBalance = Number.NEGATIVE_INFINITY;
-  let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
-  let dateOfEmptyFiat = new Date();
-  let dateOfNextOrder = new Date();
-
-  const buyBitcoin = async () => {
-    let buyOrderResponse;
-    try {
-      buyOrderResponse = await executeBuyOrder();
-      noSuccessfulCallsYet = false;
-    } catch (e) {
-      console.error("Buy order request failed!");
-    }
-    if (buyOrderResponse?.error?.length !== 0) {
-      console.error("Could not place buy order!");
-    } else {
-      logQueue.push(
-        `Kraken: ${buyOrderResponse?.result?.descr?.order} > Success!`
-      );
-      logQueue.push(
-        `Bought for ~${(lastBtcFiatPrice * KRAKEN_BTC_ORDER_SIZE).toFixed(
-          2
-        )} ${CURRENCY}`
-      );
-    }
-  };
-
-  let firstRun = true;
-
-  const runner = async () => {
-    while (true) {
-      let buyOrderExecuted = false;
-      const balance = (await queryPrivateApi("Balance", ""))?.result;
-      if (!balance || Object.keys(balance).length === 0) {
-        printBalanceQueryFailedError();
-        await timer(15000);
-        continue;
-      }
-      fiatAmount = Number(balance[fiatPrefix + CURRENCY]);
-      logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
-      if (fiatAmount > lastFiatBalance || firstRun) {
-        estimateNextFiatDepositDate();
-        lastFiatBalance = fiatAmount;
-        firstRun = false;
-      }
-
-      lastBtcFiatPrice = await fetchBtcFiatPrice();
-      if (!lastBtcFiatPrice) {
-        printInvalidCurrencyError();
-        await timer(15000);
-        continue;
-      }
-      logQueue.push(`BTC Price: ${lastBtcFiatPrice.toFixed(2)} ${CURRENCY}`);
-
-      const btcAmount = Number(balance.XXBT);
-      const now = Date.now();
-      // ---|--o|---|---|---|---|-o-|---
-      //  x  ===  x   x   x   x  ===  x
-      if (
-        dateOfNextOrder >= new Date(now - FIAT_CHECK_DELAY) &&
-        dateOfNextOrder < now
-      ) {
-        await buyBitcoin(logQueue);
-        evaluateMillisUntilNextOrder();
-        buyOrderExecuted = true;
-      }
-
-      const newBtcAmount = btcAmount + KRAKEN_BTC_ORDER_SIZE;
-      logQueue.push(
-        `Accumulated BTC: ${newBtcAmount.toFixed(
-          String(KRAKEN_BTC_ORDER_SIZE).split(".")[1].length
-        )} ₿`
-      );
-
-      logQueue.push(
-        `Next order in: ${formatTimeToHoursAndLess(
-          dateOfNextOrder.getTime() - Date.now()
-        )} @ ${dateOfNextOrder.toLocaleString().split(", ")[1]}`
-      );
-
-      flushLogging(buyOrderExecuted);
-
-      if (buyOrderExecuted && isWithdrawalDue(newBtcAmount)) {
-        await withdrawBtc(newBtcAmount);
-      }
-
-      await timer(FIAT_CHECK_DELAY);
     }
   };
 
