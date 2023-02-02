@@ -257,6 +257,7 @@ const main = async () => {
   };
 
   const withdrawBtc = async (btcAmount) => {
+    console.log(`Attempting to withdraw ${btcAmount} ₿ ...`);
     const withdrawal = await executeWithdrawal(btcAmount);
     if (withdrawal?.result?.refid)
       console.log(`Withdrawal executed! Date: ${new Date().toLocaleString()}!`);
@@ -384,11 +385,11 @@ const main = async () => {
         )} @ ${dateOfNextOrder.toLocaleString().split(", ")[1]}`
       );
 
-      if (isWithdrawalDue(newBtcAmount)) {
-        await withdrawBtc();
-      }
-
       flushLogging(buyOrderExecuted);
+
+      if (buyOrderExecuted && isWithdrawalDue(newBtcAmount)) {
+        await withdrawBtc(newBtcAmount);
+      }
 
       await timer(FIAT_CHECK_DELAY);
     }
