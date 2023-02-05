@@ -20,6 +20,7 @@ const main = async () => {
     process.env.KRAKEN_WITHDRAWAL_ADDRESS_KEY || false; // OPTIONAL! The "Description" (name) of the whitelisted bitcoin address on kraken. Don't set this option if you don't want automatic withdrawals.
   const WITHDRAW_TARGET = Number(process.env.WITHDRAW_TARGET) || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
   const FIAT_CHECK_DELAY = Number(process.env.FIAT_CHECK_DELAY) || 15 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
+  const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL); // (Number 1-27 only!) Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
 
   const publicApiPath = "/0/public/";
   const privateApiPath = "/0/private/";
@@ -71,7 +72,10 @@ const main = async () => {
       fiatAmount = Number(balance[fiatPrefix + CURRENCY]);
       logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
       if (fiatAmount > lastFiatBalance || firstRun) {
-        estimateNextFiatDepositDate();
+        const _dateOfEmptyFiat = estimateNextFiatDepositDate(firstRun);
+        logQueue.push(
+          `Empty fiat @ approx. ${_dateOfEmptyFiat.toLocaleString()}`
+        );
         lastFiatBalance = fiatAmount;
         firstRun = false;
       }
@@ -366,15 +370,25 @@ const main = async () => {
     else console.error(`Withdrawal failed! ${withdrawal?.error}`);
   };
 
-  const estimateNextFiatDepositDate = () => {
+  const estimateNextFiatDepositDate = (firstRun) => {
     dateOfEmptyFiat = new Date();
-    dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() + 31);
+
+    // If 'DATE_OF_CASH_REFILL' is not set, ignore.
+    if (firstRun && !isNaN(DATE_OF_CASH_REFILL)) {
+      dateOfEmptyFiat.setDate(DATE_OF_CASH_REFILL);
+      if (dateOfEmptyFiat.getDate() <= Date.now()) {
+        dateOfEmptyFiat.setMonth(dateOfEmptyFiat.getMonth() + 1);
+      }
+    } else {
+      dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() + 31);
+    }
 
     if (isWeekend(dateOfEmptyFiat))
       dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() - 1);
     // If first time was SA, next day will be SU, so we have to repeat the check.
     if (isWeekend(dateOfEmptyFiat))
       dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() - 1);
+
     return dateOfEmptyFiat;
   };
 
