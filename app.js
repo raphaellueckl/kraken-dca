@@ -6,7 +6,7 @@ const https = require("https");
  * Kraken DCA Bot
  * by @codepleb
  *
- * Donations in BTC: bc1qut5yvlmr228ct3978ks4y3ar0xhr4vz8j946gv
+ * Donations in BTC: bc1q4et8wxhsguz8hsm46pnuvq7h68up8mlw6fhqyt
  * Donations in Lightning-BTC (Telegram): codepleb@ln.tips
  */
 
@@ -15,12 +15,13 @@ const main = async () => {
   const KRAKEN_API_PRIVATE_KEY = process.env.KRAKEN_API_PRIVATE_KEY; // Kraken API private key
   const CURRENCY = process.env.CURRENCY || "USD"; // Choose the currency that you are depositing regularly. Check here how you currency has to be named: https://docs.kraken.com/rest/#operation/getAccountBalance
   const KRAKEN_BTC_ORDER_SIZE =
-    Number(process.env.KRAKEN_BTC_ORDER_SIZE) || 0.0001; // Optional! Changing this value is not recommended. Kraken currently has a minimum order size of 0.0001 BTC. You might consider changing this, if your monthly investment exceeds 6 figures.
+    Number(process.env.KRAKEN_BTC_ORDER_SIZE) || 0.0001; // OPTIONAL! Changing this value is not recommended. Kraken currently has a minimum order size of 0.0001 BTC. You can adapt it if you prefer fewer buys (for better tax management or other reasons).
   const KRAKEN_WITHDRAWAL_ADDRESS_KEY =
     process.env.KRAKEN_WITHDRAWAL_ADDRESS_KEY || false; // OPTIONAL! The "Description" (name) of the whitelisted bitcoin address on kraken. Don't set this option if you don't want automatic withdrawals.
   const WITHDRAW_TARGET = Number(process.env.WITHDRAW_TARGET) || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
-  const FIAT_CHECK_DELAY = Number(process.env.FIAT_CHECK_DELAY) || 15 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
-  const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL); // (Number 1-27 only!) Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
+  const FIAT_CHECK_DELAY =
+    Number(process.env.FIAT_CHECK_DELAY) || 10 * 60 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
+  const DATE_OF_CASH_REFILL = Number(process.env.DATE_OF_CASH_REFILL); // OPTIONAL! Day of month, where new funds get deposited regularly (ignore weekends, that will be handled automatically)
 
   const publicApiPath = "/0/public/";
   const privateApiPath = "/0/private/";
@@ -59,6 +60,7 @@ const main = async () => {
   log("|===========================================================|");
   log();
   log("DCA activated now!");
+  log("Fiat currency to be used:", CURRENCY);
 
   const runner = async () => {
     while (true) {
