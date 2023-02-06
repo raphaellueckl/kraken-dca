@@ -36,7 +36,7 @@ The bot assumes that you deposit money once a month and if that day is a weekend
 
 ## How can I make it run? (Extremely basic videos below if you don't understand it)
 
-### Option 1 - The "normal" way
+### Option 1 - The Standard Way
 
 - Create an API key in your Kraken account with ONLY the options `Query Funds` and `Create & Modify Orders`. IMPORTANT: If you want to let the bot automatically withdraw funds to your private wallet, also select the option `Withdraw Funds`. Selecting other choices will be a risk to your account and does not provide any advantage!
 - Start the bot by opening a terminal and entereing the following into a terminal (do not write the '<>' characters):
@@ -62,11 +62,28 @@ Download Node here if you don't have it: https://nodejs.org/en/download/
 
 1. Download and install `docker`: https://docs.docker.com/get-docker/ (Windows users: Download and install `git` https://git-scm.com/downloads)
 1. Clone this project: `git clone https://github.com/raphaellueckl/kraken-dca.git && cd kraken-dca`
-1. Adapt the file `docker-compose.yml`: Add your kraken-keys, currency, date of cash deposit (only change the values in `environment`)
+1. Adapt the file `docker-compose.yml`: Add your kraken-keys, currency, and so on (only change the values in `environment`)
 1. Open a terminal within that folder.
 1. Run the command `docker compose up -d`
 
 If you have questions, find further info below, where the parameters are explained and/or watch the videos! :)
+
+## Updates
+
+### Standard Way
+
+1. `cd ~/kraken-dca-bot`
+1. `curl https://raw.githubusercontent.com/raphaellueckl/kraken-dca/master/bot.js --output bot.js`
+1. Done. Start the bot.
+
+### Docker Way
+
+Disclaimer: I'm no docker expert and the following was user feedback.
+
+1. `cd ~/kraken-dca`
+1. `git pull`
+1. `docker system prune -a` (I'm not sure if this is the best idea, but it seems to work)
+1. `docker compose up -d`
 
 ## A note on withdrawals
 
