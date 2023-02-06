@@ -376,7 +376,7 @@ const main = async () => {
     // If 'DATE_OF_CASH_REFILL' is not set, ignore.
     if (firstRun && !isNaN(DATE_OF_CASH_REFILL)) {
       dateOfEmptyFiat.setDate(DATE_OF_CASH_REFILL);
-      if (dateOfEmptyFiat.getDate() <= Date.now()) {
+      if (dateOfEmptyFiat.getTime() <= Date.now()) {
         dateOfEmptyFiat.setMonth(dateOfEmptyFiat.getMonth() + 1);
       }
     } else {
