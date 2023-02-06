@@ -46,7 +46,7 @@ const main = async () => {
   let logQueue = [`[${new Date().toLocaleString()}]`];
   let firstRun = true;
   let interrupted = 0;
-  let noSuccessfulCallsYet = true;
+  let noSuccessfulBuyYet = true;
 
   log("|===========================================================|");
   log("|                     ------------------                    |");
@@ -256,7 +256,7 @@ const main = async () => {
     let buyOrderResponse;
     try {
       buyOrderResponse = await executeBuyOrder();
-      noSuccessfulCallsYet = false;
+      noSuccessfulBuyYet = false;
     } catch (e) {
       console.error("Buy order request failed!");
     }
@@ -296,25 +296,6 @@ const main = async () => {
     return privateResponse;
   };
 
-  const formatTimeToHoursAndLess = (timeInMillis) => {
-    const hours = timeInMillis / 1000 / 60 / 60;
-    const minutes = (timeInMillis / 1000 / 60) % 60;
-    const seconds = (timeInMillis / 1000) % 60;
-    return `${parseInt(hours, 10)}h ${parseInt(minutes, 10)}m ${Math.round(
-      seconds
-    )}s`;
-  };
-
-  const flushLogging = (printLogs) => {
-    if (printLogs) log(logQueue.join(" > "));
-    logQueue = [`[${new Date().toLocaleString()}]`];
-  };
-
-  const timer = (delay) =>
-    new Promise((resolve) => {
-      setTimeout(resolve, delay);
-    });
-
   const isWithdrawalDateDue = () => {
     if (new Date() > withdrawalDate) {
       withdrawalDate.setDate(1);
@@ -347,7 +328,7 @@ const main = async () => {
     console.error(
       "Probably invalid currency symbol! If this happens at bot startup, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
     );
-    if (++interrupted >= 3 && noSuccessfulCallsYet) {
+    if (++interrupted >= 3 && noSuccessfulBuyYet) {
       throw Error("Interrupted! Too many failed API calls.");
     }
   };
@@ -357,7 +338,7 @@ const main = async () => {
     console.error(
       "Could not query the balance on your account. Either incorrect API key or key-permissions on kraken!"
     );
-    if (++interrupted >= 3 && noSuccessfulCallsYet) {
+    if (++interrupted >= 3 && noSuccessfulBuyYet) {
       throw Error("Interrupted! Too many failed API calls.");
     }
   };
@@ -408,6 +389,25 @@ const main = async () => {
       console.error("Last BTC fiat price was not present!");
     }
   };
+
+  const formatTimeToHoursAndLess = (timeInMillis) => {
+    const hours = timeInMillis / 1000 / 60 / 60;
+    const minutes = (timeInMillis / 1000 / 60) % 60;
+    const seconds = (timeInMillis / 1000) % 60;
+    return `${parseInt(hours, 10)}h ${parseInt(minutes, 10)}m ${Math.round(
+      seconds
+    )}s`;
+  };
+
+  const flushLogging = (printLogs) => {
+    if (printLogs) log(logQueue.join(" > "));
+    logQueue = [`[${new Date().toLocaleString()}]`];
+  };
+
+  const timer = (delay) =>
+    new Promise((resolve) => {
+      setTimeout(resolve, delay);
+    });
 
   try {
     await runner();
