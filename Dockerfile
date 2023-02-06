@@ -1,8 +1,7 @@
 FROM node:18-alpine
 
-ENV NODE_ENV=production
-WORKDIR /app
-ADD app.js /app/
+WORKDIR /bot
+ADD bot.js /bot/
 USER node
 
-CMD ["node", "app.js"]
+CMD ["node", "bot.js"]
