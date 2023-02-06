@@ -72,9 +72,9 @@ const main = async () => {
       fiatAmount = Number(balance[fiatPrefix + CURRENCY]);
       logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
       if (fiatAmount > lastFiatBalance || firstRun) {
-        const _dateOfEmptyFiat = estimateNextFiatDepositDate(firstRun);
+        estimateNextFiatDepositDate(firstRun);
         logQueue.push(
-          `Empty fiat @ approx. ${_dateOfEmptyFiat.toLocaleString()}`
+          `Empty fiat @ approx. ${dateOfEmptyFiat.toLocaleString()}`
         );
         lastFiatBalance = fiatAmount;
         firstRun = false;
@@ -380,12 +380,12 @@ const main = async () => {
         dateOfEmptyFiat.setMonth(dateOfEmptyFiat.getMonth() + 1);
       }
     } else {
-      dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() + 31);
+      dateOfEmptyFiat.setMonth(dateOfEmptyFiat.getMonth() + 1);
     }
 
     if (isWeekend(dateOfEmptyFiat))
       dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() - 1);
-    // If first time was SA, next day will be SU, so we have to repeat the check.
+    // If first time was SUN, previous day will be SAT, so we have to repeat the check.
     if (isWeekend(dateOfEmptyFiat))
       dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() - 1);
 
