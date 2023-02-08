@@ -73,7 +73,8 @@ const main = async () => {
       }
       fiatAmount = Number(balance[fiatPrefix + CURRENCY]);
       logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
-      if (fiatAmount > lastFiatBalance || firstRun) {
+      const newFiatArrived = fiatAmount > lastFiatBalance;
+      if (newFiatArrived || firstRun) {
         estimateNextFiatDepositDate(firstRun);
         logQueue.push(
           `Empty fiat @ approx. ${dateOfEmptyFiat.toLocaleString()}`
@@ -95,8 +96,9 @@ const main = async () => {
       // ---|--o|---|---|---|---|-o-|---
       //  x  ===  x   x   x   x  ===  x
       if (
-        dateOfNextOrder >= new Date(now - FIAT_CHECK_DELAY) &&
-        dateOfNextOrder < now
+        (dateOfNextOrder >= new Date(now - FIAT_CHECK_DELAY) &&
+          dateOfNextOrder < now) ||
+        newFiatArrived
       ) {
         await buyBitcoin(logQueue);
         evaluateMillisUntilNextOrder();
