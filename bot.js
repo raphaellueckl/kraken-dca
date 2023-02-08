@@ -49,6 +49,7 @@ const main = async () => {
   let interrupted = 0;
   let noSuccessfulBuyYet = true;
 
+  log();
   log("|===========================================================|");
   log("|                     ------------------                    |");
   log("|                     |   Kraken DCA   |                    |");
