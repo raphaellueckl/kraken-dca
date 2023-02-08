@@ -5,16 +5,25 @@
 A flexible "Dollar Cost Average" executor for the cryptocurrency exchange [Kraken](https://kraken.com/)!
 In-Depth **English** and **German** videos below. Everyone of you can do this, trust me!
 
-Please send me feedback! If this is worth something to you, feel free to throw me some Sats:
+Please send me feedback!
 
-- via Bitcoin mainnet: `bc1q4et8wxhsguz8hsm46pnuvq7h68up8mlw6fhqyt`
-- via Bitcoin Lightning (telegram): `codepleb@ln.tips`
+## Donations
 
-**Tested currencies that work: `EUR, USD, GBP, CHF`.** Others might work as well, but I only tested with those four. Feel free to test it with others, as the worst you can get is an error message. :)
+If this is worth something to you, feel free to throw me some Sats:
+
+Bitcoin mainnet: `bc1q4et8wxhsguz8hsm46pnuvq7h68up8mlw6fhqyt`
+
+Bitcoin Lightning (telegram): `codepleb@ln.tips`
+
+PayPal:
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/paypalme/codepleb/2)
 
 ## What does it do?
 
 It buys Bitcoin for you at every price.
+
+**Tested currencies that work: `EUR, USD, GBP, CHF`.** Others might work as well, but I only tested with those four. Feel free to test it with others, as the worst you can get is an error message. :)
 
 The more fiat money you deposit onto Kraken, the more frequent you will be buying bitcoin! This works thanks to the algorithm taking the minimum possible order size on kraken and executing it as many times as possible, over the spread of a month, so that you run out of FIAT when the next FIAT drop is supposed to happen! You get your salary once a month? You deposit some of it to kraken once a month? Then this bot will be permanently buying bitcoin in the time in between.
 
