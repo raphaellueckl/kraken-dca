@@ -2,7 +2,7 @@
 
 **LEGAL-DISCLAIMER: You run this bot completely at your own risk! I can't take any responsibility for what happens to you and all the points I make are just assumtions.**
 
-A flexible "Dollar Cost Average" executor for the cryptocurrency exchange kraken.com!
+A flexible "Dollar Cost Average" executor for the cryptocurrency exchange [Kraken](https://kraken.com/)!
 In-Depth **English** and **German** videos below. Everyone of you can do this, trust me!
 
 Please send me feedback! If this is worth something to you, feel free to throw me some Sats:
@@ -41,7 +41,7 @@ The bot assumes that you deposit money once a month and if that day is a weekend
 - Create an API key in your Kraken account with ONLY the options `Query Funds` and `Create & Modify Orders`. IMPORTANT: If you want to let the bot automatically withdraw funds to your private wallet, also select the option `Withdraw Funds`. Selecting other choices will be a risk to your account and does not provide any advantage!
 - Start the bot by opening a terminal and entereing the following into a terminal (do not write the '<>' characters):
 
-  - Schema: `KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<'description' of your withdrawal address> WITHDRAW_TARGET=<number> CURRENCY=<your currency, e.g. USD / EUR / CHF> FIAT_CHECK_DELAY=<number in milliseconds, default: 600000> node bot.js`
+  - Schema: `KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<'description' of your withdrawal address> WITHDRAW_TARGET=<number> CURRENCY=<your currency, e.g. USD / EUR / CHF / GBP> FIAT_CHECK_DELAY=<number in milliseconds, default: 600000> node bot.js`
   - Example bot start - Minimal Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== node bot.js`
   - Example bot start - 'Including Withdrawals'-Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" FIAT_CHECK_DELAY=600000 node bot.js`
   - **WINDOWS USERS BEWARE!** Your command looks like this (the "&&" characters separate each command and they need to be placed WITHOUT whitespaces around): `SET KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps&&SET KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo==&&SET CURRENCY=USD&&SET WITHDRAW_TARGET=0.1&&SET KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano"&&SET FIAT_CHECK_DELAY=600000&&node bot.js`
@@ -67,6 +67,30 @@ Download Node here if you don't have it: https://nodejs.org/en/download/
 1. Run the command `docker compose up -d`
 
 If you have questions, find further info below, where the parameters are explained and/or watch the videos! :)
+
+## Environment Variables
+
+These are the variables you add in the command that starts the bot. If you use docker, those reside within the `docker-compose.yml` file in the section `services -> bot -> environment`
+
+```bash
+# Values containing whitespaces NEED to be enclosed within "".
+KRAKEN_API_PUBLIC_KEY: Your Kraken public key, created here: https://www.kraken.com/u/security/api/new
+
+KRAKEN_API_PRIVATE_KEY: Kraken private key, created alongside the public key.
+
+CURRENCY: One of: USD / EUR / CHF / GBP || DEFAULT: USD
+
+DATE_OF_CASH_REFILL: Day of the month where you usually deposit fiat. E.g. 26 || DEFAULT: ignored
+
+KRAKEN_WITHDRAWAL_ADDRESS_KEY: Name of the wallet, that you registered on kraken. E.g. trezor || DEFAULT: ignored
+
+WITHDRAW_TARGET: If you accumulate X amount of bitcoin, initiate an automated withdrawal. E.g. 0.01 || DEFAULT: ignored
+
+KRAKEN_BTC_ORDER_SIZE: Any Bitcoin amount above the default || DEFAULT: 0.0001
+
+FIAT_CHECK_DELAY: Any number in milliseconds! || Default: 600000 (which is 10 minutes)
+
+```
 
 ## Updates
 
