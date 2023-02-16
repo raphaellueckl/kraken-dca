@@ -5,6 +5,8 @@
 This project resembles a flexible "Dollar Cost Average" (DCA) executor for the cryptocurrency exchange [Kraken](https://kraken.com/)!
 In-Depth **English** and **German** videos below. Everyone of you can do this, trust me!
 
+The project has zero dependencies. What you see is what gets executed! All in one file.
+
 Please send me feedback!
 
 ## Donations
