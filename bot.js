@@ -95,11 +95,7 @@ const main = async () => {
       const now = Date.now();
       // ---|--o|---|---|---|---|-o-|---
       //  x  ===  x   x   x   x  ===  x
-      if (
-        (dateOfNextOrder >= new Date(now - FIAT_CHECK_DELAY) &&
-          dateOfNextOrder < now) ||
-        newFiatArrived
-      ) {
+      if (dateOfNextOrder < now || newFiatArrived) {
         await buyBitcoin(logQueue);
         evaluateMillisUntilNextOrder();
         buyOrderExecuted = true;
