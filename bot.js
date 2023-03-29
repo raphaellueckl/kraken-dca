@@ -20,8 +20,7 @@ const main = async () => {
   const WITHDRAW_TARGET = Number(process.env.WITHDRAW_TARGET) || false; // OPTIONAL! If you set the withdrawal key option but you don't want to withdraw once a month, but rather when reaching a certain amount of accumulated bitcoin, use this variable to override the "withdraw on date" functionality.
   const KRAKEN_BTC_ORDER_SIZE =
     Number(process.env.KRAKEN_BTC_ORDER_SIZE) || 0.0001; // OPTIONAL! Changing this value is not recommended. Kraken currently has a minimum order size of 0.0001 BTC. You can adapt it if you prefer fewer buys (for better tax management or other reasons).
-  const FIAT_CHECK_DELAY =
-    Number(process.env.FIAT_CHECK_DELAY) || 10 * 60 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
+  const FIAT_CHECK_DELAY = Number(process.env.FIAT_CHECK_DELAY) || 60 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
 
   const publicApiPath = "/0/public/";
   const privateApiPath = "/0/private/";
@@ -162,10 +161,11 @@ const main = async () => {
     let data = "{}";
     try {
       data = await executeGetRequest(options);
+      return JSON.parse(data);
     } catch (e) {
       console.error(`Could not make GET request to ${endPointName}`);
+      return JSON.parse("{}");
     }
-    return JSON.parse(data);
   };
 
   const executePostRequest = (
@@ -232,11 +232,11 @@ const main = async () => {
         signature,
         https
       );
+      return JSON.parse(result);
     } catch (e) {
-      console.error(`Could not make POST request to ${endpoint}`);
+      console.error(`Could not make successful POST request to ${endpoint}`);
+      return JSON.parse("{}");
     }
-
-    return JSON.parse(result);
   };
 
   const createAuthenticationSignature = (
@@ -261,20 +261,24 @@ const main = async () => {
     let buyOrderResponse;
     try {
       buyOrderResponse = await executeBuyOrder();
-      noSuccessfulBuyYet = false;
+      if (buyOrderResponse?.error?.length !== 0) {
+        console.error(
+          "Buy-Order response had invalid structure! Skipping this buy order."
+        );
+      } else {
+        noSuccessfulBuyYet = false;
+        logQueue.push(
+          `Kraken: ${buyOrderResponse?.result?.descr?.order} > Success!`
+        );
+        logQueue.push(
+          `Bought for ~${(lastBtcFiatPrice * KRAKEN_BTC_ORDER_SIZE).toFixed(
+            2
+          )} ${CURRENCY}`
+        );
+      }
     } catch (e) {
-      console.error("Buy order request failed!");
-    }
-    if (buyOrderResponse?.error?.length !== 0) {
-      console.error("Could not place buy order!");
-    } else {
-      logQueue.push(
-        `Kraken: ${buyOrderResponse?.result?.descr?.order} > Success!`
-      );
-      logQueue.push(
-        `Bought for ~${(lastBtcFiatPrice * KRAKEN_BTC_ORDER_SIZE).toFixed(
-          2
-        )} ${CURRENCY}`
+      console.error(
+        "Buy order request failed! Probably a temporary issue with Kraken, if you don't see this error right from the start. Skipping this one."
       );
     }
   };

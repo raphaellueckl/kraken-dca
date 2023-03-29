@@ -101,7 +101,7 @@ WITHDRAW_TARGET: # [Optional, if monthly withdrawals are good enough for you] If
 
 KRAKEN_BTC_ORDER_SIZE: # [Optional for almost anyone! Only adapt if you don't hustle that maximum DCA lifestyle] Any Bitcoin amount above the default || DEFAULT: 0.0001
 
-FIAT_CHECK_DELAY: # [Optional for almost anyone!] The time between each cycle. Any number in milliseconds! || Default: 600000 (which is 10 minutes)
+FIAT_CHECK_DELAY: # [Optional for almost anyone!] The time between each cycle. Any number in milliseconds! || Default: 60000 (which is 1 minute)
 
 ```
 
