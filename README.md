@@ -25,7 +25,7 @@ PayPal:
 
 It buys Bitcoin for you at every price, as often as possible, continously. It is made so that it should only run out of money when the next fiat deposit is supposed to happen. And it constantly adapts itself automatically after each executed buy order, to the current Bitcoin price and to the remaining fiat.
 
-**Tested currencies that work: `EUR, USD, GBP, CHF`.** Others might work as well, but I only tested with those four. Feel free to test it with others, as the worst you can get is an error message. :)
+**Tested currencies that work: `EUR, USD, GBP, CHF, AUD`.** Others might work as well, but I only tested with those four. Feel free to test it with others, as the worst you can get is an error message. :)
 
 The more fiat money you deposit onto Kraken, the more frequent you will be buying Bitcoin! This works thanks to the algorithm taking the minimum possible order size on kraken and executing it as many times as possible, over the spread of a month, so that you run out of FIAT when the next FIAT drop is supposed to happen! You get your salary once a month? You deposit some of it to kraken once a month? Then this bot will be permanently buying Bitcoin in the time in between.
 
@@ -53,7 +53,7 @@ Kraken is by far the cheapest option that I know. Kraken has one of the best pri
 - Create an API key in your Kraken account with ONLY the options `Query Funds` and `Create & Modify Orders`. IMPORTANT: If you want to let the bot automatically withdraw funds to your private wallet, also select the option `Withdraw Funds`. Selecting other choices will be a risk to your account and does not provide any advantage!
 - Start the bot by opening a terminal and entereing the following into a terminal (do not write the '<>' characters):
 
-  - Schema: `KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<'description' of your withdrawal address> WITHDRAW_TARGET=<number> CURRENCY=<your currency, e.g. USD / EUR / CHF / GBP> FIAT_CHECK_DELAY=<number in milliseconds, default: 600000> node bot.js`
+  - Schema: `KRAKEN_API_PUBLIC_KEY=<your public key> KRAKEN_API_PRIVATE_KEY=<your private key> KRAKEN_WITHDRAWAL_ADDRESS_KEY=<'description' of your withdrawal address> WITHDRAW_TARGET=<number> CURRENCY=<your currency, e.g. USD / EUR / CHF / GBP / AUD> FIAT_CHECK_DELAY=<number in milliseconds, default: 600000> node bot.js`
   - Example bot start - Minimal Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== node bot.js`
   - Example bot start - 'Including Withdrawals'-Version: `KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo== CURRENCY=USD WITHDRAW_TARGET=0.1 KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano" FIAT_CHECK_DELAY=600000 node bot.js`
   - **WINDOWS USERS BEWARE!** Your command looks like this (the "&&" characters separate each command and they need to be placed WITHOUT whitespaces around): `SET KRAKEN_API_PUBLIC_KEY=8b9j4hD7mhPVDAoDZrZ8BPsJWoBCQ0XmBMPPb4LPBDpMjpXPgD4sc+Ps&&SET KRAKEN_API_PRIVATE_KEY=Xbg0kGG1qtvCnuFu9pLSk8pnWq8xSXVo/qg9p58CVqSSWYQ=uv1gUJ7eYpf9Fp4rnpBggpm4n597FjHuHvHgSo==&&SET CURRENCY=USD&&SET WITHDRAW_TARGET=0.1&&SET KRAKEN_WITHDRAWAL_ADDRESS_KEY="my ledger nano"&&SET FIAT_CHECK_DELAY=600000&&node bot.js`
@@ -91,7 +91,7 @@ KRAKEN_API_PUBLIC_KEY: # Your Kraken public key, created here: https://www.krake
 
 KRAKEN_API_PRIVATE_KEY: # Kraken private key, created alongside the public key.
 
-CURRENCY: # One of: USD / EUR / CHF / GBP || DEFAULT: USD
+CURRENCY: # One of: USD / EUR / CHF / GBP/ AUD || DEFAULT: USD
 
 DATE_OF_CASH_REFILL: # [Optional, if you don't restart your bot often or don't care about not all fiat being used by the end of the first DCA cycle] Day of the month where you usually deposit fiat. E.g. 26 || DEFAULT: ignored
 

@@ -72,7 +72,9 @@ const main = async () => {
           await timer(FIAT_CHECK_DELAY);
           continue;
         }
-        fiatAmount = Number(balance[fiatPrefix + CURRENCY]);
+        fiatAmount = Number(
+          balance[CURRENCY === "AUD" ? "Z" : fiatPrefix + CURRENCY]
+        );
         logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
         const newFiatArrived = fiatAmount > lastFiatBalance;
         if (newFiatArrived || firstRun) {
