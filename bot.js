@@ -22,8 +22,8 @@ const main = async () => {
     Number(process.env.KRAKEN_BTC_ORDER_SIZE) || 0.0001; // OPTIONAL! Changing this value is not recommended. Kraken currently has a minimum order size of 0.0001 BTC. You can adapt it if you prefer fewer buys (for better tax management or other reasons).
   const FIAT_CHECK_DELAY = Number(process.env.FIAT_CHECK_DELAY) || 60 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
 
-  const publicApiPath = "/0/public/";
-  const privateApiPath = "/0/private/";
+  const PUBLIC_API_PATH = "/0/public/";
+  const PRIVATE_API_PATH = "/0/private/";
 
   let cryptoPrefix = "";
   let fiatPrefix = "";
@@ -64,63 +64,73 @@ const main = async () => {
 
   const runner = async () => {
     while (true) {
-      let buyOrderExecuted = false;
-      const balance = (await queryPrivateApi("Balance", ""))?.result;
-      if (!balance || Object.keys(balance).length === 0) {
-        printBalanceQueryFailedError();
-        await timer(15000);
-        continue;
-      }
-      fiatAmount = Number(balance[fiatPrefix + CURRENCY]);
-      logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
-      const newFiatArrived = fiatAmount > lastFiatBalance;
-      if (newFiatArrived || firstRun) {
-        estimateNextFiatDepositDate(firstRun);
+      try {
+        let buyOrderExecuted = false;
+        const balance = (await queryPrivateApi("Balance", ""))?.result;
+        if (!balance || Object.keys(balance).length === 0) {
+          printBalanceQueryFailedError();
+          await timer(FIAT_CHECK_DELAY);
+          continue;
+        }
+        fiatAmount = Number(balance[fiatPrefix + CURRENCY]);
+        logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
+        const newFiatArrived = fiatAmount > lastFiatBalance;
+        if (newFiatArrived || firstRun) {
+          estimateNextFiatDepositDate(firstRun);
+          logQueue.push(
+            `Empty fiat @ approx. ${dateOfEmptyFiat.toLocaleString()}`
+          );
+          lastFiatBalance = fiatAmount;
+          firstRun = false;
+        }
+
+        lastBtcFiatPrice = await fetchBtcFiatPrice();
+        if (!lastBtcFiatPrice) {
+          printInvalidCurrencyError();
+          await timer(FIAT_CHECK_DELAY);
+          continue;
+        }
+        logQueue.push(`BTC Price: ${lastBtcFiatPrice.toFixed(2)} ${CURRENCY}`);
+
+        const btcAmount = Number(balance?.XXBT);
+        if (!btcAmount && btcAmount !== 0) {
+          printInvalidBtcHoldings();
+          await timer(FIAT_CHECK_DELAY);
+          continue;
+        }
+        const now = Date.now();
+        // ---|--o|---|---|---|---|-o-|---
+        //  x  ===  x   x   x   x  ===  x
+        if (dateOfNextOrder < now || newFiatArrived) {
+          await buyBitcoin(logQueue);
+          evaluateMillisUntilNextOrder();
+          buyOrderExecuted = true;
+        }
+
+        const newBtcAmount = btcAmount + KRAKEN_BTC_ORDER_SIZE;
         logQueue.push(
-          `Empty fiat @ approx. ${dateOfEmptyFiat.toLocaleString()}`
+          `Accumulated BTC: ${newBtcAmount.toFixed(
+            String(KRAKEN_BTC_ORDER_SIZE).split(".")[1].length
+          )} ₿`
         );
-        lastFiatBalance = fiatAmount;
-        firstRun = false;
+
+        logQueue.push(
+          `Next order in: ${formatTimeToHoursAndLess(
+            dateOfNextOrder.getTime() - Date.now()
+          )} @ ${dateOfNextOrder.toLocaleString().split(", ")[1]}`
+        );
+
+        flushLogging(buyOrderExecuted);
+
+        if (buyOrderExecuted && isWithdrawalDue(newBtcAmount)) {
+          await withdrawBtc(newBtcAmount);
+        }
+
+        await timer(FIAT_CHECK_DELAY);
+      } catch (e) {
+        console.error("General Error. :/", e);
+        await timer(FIAT_CHECK_DELAY);
       }
-
-      lastBtcFiatPrice = await fetchBtcFiatPrice();
-      if (!lastBtcFiatPrice) {
-        printInvalidCurrencyError();
-        await timer(15000);
-        continue;
-      }
-      logQueue.push(`BTC Price: ${lastBtcFiatPrice.toFixed(2)} ${CURRENCY}`);
-
-      const btcAmount = Number(balance.XXBT);
-      const now = Date.now();
-      // ---|--o|---|---|---|---|-o-|---
-      //  x  ===  x   x   x   x  ===  x
-      if (dateOfNextOrder < now || newFiatArrived) {
-        await buyBitcoin(logQueue);
-        evaluateMillisUntilNextOrder();
-        buyOrderExecuted = true;
-      }
-
-      const newBtcAmount = btcAmount + KRAKEN_BTC_ORDER_SIZE;
-      logQueue.push(
-        `Accumulated BTC: ${newBtcAmount.toFixed(
-          String(KRAKEN_BTC_ORDER_SIZE).split(".")[1].length
-        )} ₿`
-      );
-
-      logQueue.push(
-        `Next order in: ${formatTimeToHoursAndLess(
-          dateOfNextOrder.getTime() - Date.now()
-        )} @ ${dateOfNextOrder.toLocaleString().split(", ")[1]}`
-      );
-
-      flushLogging(buyOrderExecuted);
-
-      if (buyOrderExecuted && isWithdrawalDue(newBtcAmount)) {
-        await withdrawBtc(newBtcAmount);
-      }
-
-      await timer(FIAT_CHECK_DELAY);
     }
   };
 
@@ -150,7 +160,7 @@ const main = async () => {
     const options = {
       hostname: "api.kraken.com",
       port: 443,
-      path: `${publicApiPath}${endPointName}?${inputParameters || ""}`,
+      path: `${PUBLIC_API_PATH}${endPointName}?${inputParameters || ""}`,
       method: "GET",
     };
 
@@ -166,18 +176,18 @@ const main = async () => {
 
   const executePostRequest = (
     apiPostBodyData,
-    privateApiPath,
+    apiPath,
     endpoint,
     KRAKEN_API_PUBLIC_KEY,
     signature,
     https
   ) => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const body = apiPostBodyData;
       const options = {
         hostname: "api.kraken.com",
         port: 443,
-        path: `${privateApiPath}${endpoint}`,
+        path: `${apiPath}${endpoint}`,
         method: "POST",
         headers: {
           "API-Key": KRAKEN_API_PUBLIC_KEY,
@@ -199,6 +209,7 @@ const main = async () => {
 
       req.on("error", (error) => {
         console.error("error happened", error);
+        reject(error);
       });
 
       req.write(body);
@@ -212,7 +223,7 @@ const main = async () => {
 
     const signature = createAuthenticationSignature(
       KRAKEN_API_PRIVATE_KEY,
-      privateApiPath,
+      PRIVATE_API_PATH,
       endpoint,
       nonce,
       apiPostBodyData
@@ -222,7 +233,7 @@ const main = async () => {
     try {
       result = await executePostRequest(
         apiPostBodyData,
-        privateApiPath,
+        PRIVATE_API_PATH,
         endpoint,
         KRAKEN_API_PUBLIC_KEY,
         signature,
@@ -336,6 +347,13 @@ const main = async () => {
     if (++interrupted >= 3 && noSuccessfulBuyYet) {
       throw Error("Interrupted! Too many failed API calls.");
     }
+  };
+
+  const printInvalidBtcHoldings = () => {
+    flushLogging();
+    console.error(
+      "Couldn't fetch Bitcoin holdings. This is most probably a temporary issue with kraken, that will fix itself."
+    );
   };
 
   const printBalanceQueryFailedError = () => {
