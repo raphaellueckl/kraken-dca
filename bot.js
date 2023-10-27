@@ -130,7 +130,7 @@ const main = async () => {
 
         await timer(FIAT_CHECK_DELAY);
       } catch (e) {
-        console.error("General Error. :/", e);
+        printLog("General Error. :/ " + e);
         await timer(FIAT_CHECK_DELAY);
       }
     }
@@ -151,7 +151,7 @@ const main = async () => {
       });
 
       req.on("error", (error) => {
-        console.error(error);
+        printLog(error);
         reject(error);
       });
       req.end();
@@ -171,7 +171,7 @@ const main = async () => {
       data = await executeGetRequest(options);
       return JSON.parse(data);
     } catch (e) {
-      console.error(`Could not make GET request to ${endPointName}`);
+      printLog(`Could not make GET request to ${endPointName}`);
       return JSON.parse("{}");
     }
   };
@@ -210,7 +210,7 @@ const main = async () => {
       });
 
       req.on("error", (error) => {
-        console.error("error happened", error);
+        printLog("error happened! " + error);
         reject(error);
       });
 
@@ -243,7 +243,7 @@ const main = async () => {
       );
       return JSON.parse(result);
     } catch (e) {
-      console.error(`Could not make successful POST request to ${endpoint}`);
+      printLog(`Could not make successful POST request to ${endpoint}`);
       return JSON.parse("{}");
     }
   };
@@ -271,7 +271,7 @@ const main = async () => {
     try {
       buyOrderResponse = await executeBuyOrder();
       if (buyOrderResponse?.error?.length !== 0) {
-        console.error(
+        printLog(
           "Buy-Order response had invalid structure! Skipping this buy order."
         );
       } else {
@@ -286,7 +286,7 @@ const main = async () => {
         );
       }
     } catch (e) {
-      console.error(
+      printLog(
         "Buy order request failed! Probably a temporary issue with Kraken, if you don't see this error right from the start. Skipping this one."
       );
     }
@@ -343,7 +343,7 @@ const main = async () => {
 
   const printInvalidCurrencyError = () => {
     flushLogging();
-    console.error(
+    printLog(
       "Probably invalid currency symbol! If this happens at bot startup, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
     );
     if (++interrupted >= 3 && noSuccessfulBuyYet) {
@@ -353,14 +353,14 @@ const main = async () => {
 
   const printInvalidBtcHoldings = () => {
     flushLogging();
-    console.error(
+    printLog(
       "Couldn't fetch Bitcoin holdings. This is most probably a temporary issue with kraken, that will fix itself."
     );
   };
 
   const printBalanceQueryFailedError = () => {
     flushLogging();
-    console.error(
+    printLog(
       "Could not query the balance on your account. Either incorrect API key or key-permissions on kraken!"
     );
     if (++interrupted >= 3 && noSuccessfulBuyYet) {
@@ -369,11 +369,11 @@ const main = async () => {
   };
 
   const withdrawBtc = async (btcAmount) => {
-    console.log(`Attempting to withdraw ${btcAmount} ₿ ...`);
+    printLog(`Attempting to withdraw ${btcAmount} ₿ ...`);
     const withdrawal = await executeWithdrawal(btcAmount);
     if (withdrawal?.result?.refid)
-      console.log(`Withdrawal executed! Date: ${new Date().toLocaleString()}!`);
-    else console.error(`Withdrawal failed! ${withdrawal?.error}`);
+      printLog(`Withdrawal executed! Date: ${new Date().toLocaleString()}!`);
+    else printLog(`Withdrawal failed! ${withdrawal?.error}`);
   };
 
   const estimateNextFiatDepositDate = (firstRun) => {
@@ -411,7 +411,7 @@ const main = async () => {
           now
       );
     } else {
-      console.error("Last BTC fiat price was not present!");
+      printLog("Last BTC fiat price was not present!");
     }
   };
 
@@ -425,7 +425,7 @@ const main = async () => {
   };
 
   const flushLogging = (printLogs) => {
-    if (printLogs) log(logQueue.join(" > "));
+    if (printLogs) printLog(logQueue.join(" > "));
     logQueue = [`[${new Date().toLocaleString()}]`];
   };
 
@@ -434,11 +434,60 @@ const main = async () => {
       setTimeout(resolve, delay);
     });
 
+  const clearMultiLineConsoleLog = (linesToClear) => {
+    process.stdout.moveCursor(0, -linesToClear); // Move the cursor up by 'linesToClear' lines
+
+    for (let i = 0; i < linesToClear; i++) {
+      process.stdout.clearLine(0); // Clear each line
+      process.stdout.moveCursor(0, 1); // Move the cursor down by 1 line
+    }
+
+    process.stdout.moveCursor(0, -linesToClear); // Move the cursor back to the original position
+    process.stdout.cursorTo(0); // Move the cursor to the beginning of the line
+  };
+
+  let lastLogMessage = "";
+  let messageRepeatCounter = 1;
+  let amountOfLinesToClear = 0;
+  let timestampOfFirstOccurence = null;
+  // This method is complicated, because repeated errors get cleared up
+  // and reprinted, to not pollute the console too much.
+  const printLog = (msg) => {
+    if (lastLogMessage.includes(msg)) {
+      const columns = process.stdout.columns;
+      if (lastLogMessage.length > columns) {
+        amountOfLinesToClear = Math.floor(lastLogMessage.length / columns);
+        clearMultiLineConsoleLog(amountOfLinesToClear);
+      } else {
+        const clearLine = " ".repeat(columns);
+        process.stdout.cursorTo(0);
+        process.stdout.write(clearLine);
+        process.stdout.cursorTo(0);
+      }
+
+      const newErrorMessage = `[(${++messageRepeatCounter}) ${timestampOfFirstOccurence}]: ${msg}`;
+      process.stdout.write(newErrorMessage);
+      lastLogMessage = newErrorMessage;
+    } else {
+      const newErrorMessage = msg;
+      process.stdout.write("\n");
+      process.stdout.write(newErrorMessage);
+      lastLogMessage = newErrorMessage;
+      messageRepeatCounter = 1;
+      amountOfLinesToClear = 0;
+      timestampOfFirstOccurence = new Date()
+        .toISOString()
+        .split("T")
+        .join(" ")
+        .split(".")[0];
+    }
+  };
+
   try {
     await runner();
   } catch (e) {
     flushLogging();
-    console.error("Unhandled error happened. :(");
+    printLog("Unhandled error happened. :(");
     throw e;
   }
 };
