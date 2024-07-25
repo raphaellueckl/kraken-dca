@@ -394,8 +394,6 @@ const main = async () => {
     // If first time was SUN, previous day will be SAT, so we have to repeat the check.
     if (isWeekend(dateOfEmptyFiat))
       dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() - 1);
-
-    return dateOfEmptyFiat;
   };
 
   const evaluateMillisUntilNextOrder = () => {
@@ -404,12 +402,18 @@ const main = async () => {
       const approximatedAmoutOfOrdersUntilFiatRefill =
         myFiatValueInBtc / KRAKEN_BTC_ORDER_SIZE;
 
-      const now = Date.now();
-      dateOfNextOrder = new Date(
-        (dateOfEmptyFiat.getTime() - now) /
-          approximatedAmoutOfOrdersUntilFiatRefill +
-          now
-      );
+      if (approximatedAmoutOfOrdersUntilFiatRefill < 1) {
+        console.error(
+          `Cannot estimate time for next order. Fiat: ${fiatAmount}, Last BTC price: ${lastBtcFiatPrice}`
+        );
+      } else {
+        const now = Date.now();
+        dateOfNextOrder = new Date(
+          (dateOfEmptyFiat.getTime() - now) /
+            approximatedAmoutOfOrdersUntilFiatRefill +
+            now
+        );
+      }
     } else {
       console.error("Last BTC fiat price was not present!");
     }
