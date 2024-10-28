@@ -48,6 +48,8 @@ const main = async () => {
   let interrupted = 0;
   let noSuccessfulBuyYet = true;
 
+  let fiatAmount = undefined;
+
   log();
   log("|===========================================================|");
   log("|                     ------------------                    |");
@@ -67,23 +69,28 @@ const main = async () => {
       try {
         let buyOrderExecuted = false;
         const balance = (await queryPrivateApi("Balance", ""))?.result;
-        if (!balance || Object.keys(balance).length === 0) {
+        fiatAmount = Number(
+          balance?.[CURRENCY === "AUD" ? "Z" : fiatPrefix + CURRENCY]
+        );
+        if (
+          !balance ||
+          Object.keys(balance).length === 0 ||
+          (fiatAmount !== 0 && !fiatAmount)
+        ) {
           printBalanceQueryFailedError();
           await timer(FIAT_CHECK_DELAY);
           continue;
         }
-        fiatAmount = Number(
-          balance[CURRENCY === "AUD" ? "Z" : fiatPrefix + CURRENCY]
-        );
+
         logQueue.push(`Fiat: ${Number(fiatAmount).toFixed(2)} ${CURRENCY}`);
         const newFiatArrived = fiatAmount > lastFiatBalance;
         if (newFiatArrived || firstRun) {
           estimateNextFiatDepositDate(firstRun);
+          lastFiatBalance = fiatAmount;
+          firstRun = false;
           logQueue.push(
             `Empty fiat @ approx. ${dateOfEmptyFiat.toLocaleString()}`
           );
-          lastFiatBalance = fiatAmount;
-          firstRun = false;
         }
 
         lastBtcFiatPrice = await fetchBtcFiatPrice();
