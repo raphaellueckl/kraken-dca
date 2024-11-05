@@ -33,6 +33,10 @@ At the time of writing this readme, when you deposit 500 euro each month, you wo
 
 Example: You deposit FIAT money every month, worth 0.01 BTC. The minimum order size on Kraken is 0.0001 BTC (minimum trade volume). 0.01 / 0.0001 == 100 orders over the next month. Until the next FIAT deposit, it will equally spread 100 buy orders over time. The amount of orders cannot really be absolutely esimated at the beginning, but it will be recalculated after every buy, because if the BTC price would double during that time, the amount of orders possible will obviously become half as much.
 
+### Concept
+
+![Concept](schema.jpeg)
+
 ## Why?
 
 If you suck at trading, but believe in the vision of Bitcoin, then fire up this bot and relax. You will still buy the tops, but also the dips! You weaken one of your biggest enemies: Psychology!
