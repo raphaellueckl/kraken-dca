@@ -1,4 +1,4 @@
-# Kraken DCA Bot
+# Kraken Bitcoin DCA Bot
 
 **LEGAL-DISCLAIMER: You run this bot completely at your own risk! I won't take any responsibility for what happens to you and all the points I make are just assumtions.**
 
