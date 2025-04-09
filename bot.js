@@ -21,9 +21,10 @@ const KRAKEN_BTC_ORDER_SIZE =
   Number(process.env.KRAKEN_BTC_ORDER_SIZE) || 0.0001; // OPTIONAL! Changing this value is not recommended. Kraken currently has a minimum order size of 0.0001 BTC. You can adapt it if you prefer fewer buys (for better tax management or other reasons).
 const FIAT_CHECK_DELAY = Number(process.env.FIAT_CHECK_DELAY) || 60 * 1000; // OPTIONAL! Custom fiat check delay. This delay should not be smaller than the delay between orders.
 
+const HOSTNAME = "api.kraken.com";
 const PUBLIC_API_PATH = "/0/public/";
 const PRIVATE_API_PATH = "/0/private/";
-const { log } = console;
+const { log: LOG_MSG, error: LOG_ERROR } = console;
 
 export const getPrefixForCurrency = (currency) => {
   if (currency === "USD" || currency === "EUR" || currency === "GBP") {
@@ -32,6 +33,8 @@ export const getPrefixForCurrency = (currency) => {
   return { cryptoPrefix: "", fiatPrefix: "" };
 };
 
+const { cryptoPrefix, fiatPrefix } = getPrefixForCurrency(CURRENCY);
+
 export const refreshWithdrawalDate = () => {
   const withdrawalDate = new Date();
   withdrawalDate.setDate(1);
@@ -39,24 +42,9 @@ export const refreshWithdrawalDate = () => {
   return withdrawalDate;
 };
 
-const { cryptoPrefix, fiatPrefix } = getPrefixForCurrency(CURRENCY);
+export const isWeekend = (date) => date.getDay() % 6 == 0;
 
-let withdrawalDate = refreshWithdrawalDate();
-let lastFiatBalance = Number.NEGATIVE_INFINITY;
-let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
-let dateOfEmptyFiat = new Date();
-let dateOfNextOrder = new Date();
-
-let logQueue = [`[${new Date().toLocaleString()}]`];
-let firstRun = true;
-let interrupted = 0;
-let noSuccessfulBuyYet = true;
-
-let fiatAmount = undefined;
-
-const isWeekend = (date) => date.getDay() % 6 == 0;
-
-const executeGetRequest = (options) => {
+export const executeGetRequest = (options) => {
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
       let data = "";
@@ -69,16 +57,16 @@ const executeGetRequest = (options) => {
     });
 
     req.on("error", (error) => {
-      console.error(error);
+      LOG_ERROR(error);
       reject(error);
     });
     req.end();
   });
 };
 
-const queryPublicApi = async (endPointName, inputParameters) => {
+export const queryPublicApi = async (endPointName, inputParameters) => {
   const options = {
-    hostname: "api.kraken.com",
+    hostname: HOSTNAME,
     port: 443,
     path: `${PUBLIC_API_PATH}${endPointName}?${inputParameters || ""}`,
     method: "GET",
@@ -89,28 +77,28 @@ const queryPublicApi = async (endPointName, inputParameters) => {
     data = await executeGetRequest(options);
     return JSON.parse(data);
   } catch (e) {
-    console.error(`Could not make GET request to ${endPointName}`);
+    LOG_ERROR(`Could not make GET request to ${endPointName}`);
     return JSON.parse("{}");
   }
 };
 
-const executePostRequest = (
+export const executePostRequest = (
   apiPostBodyData,
   apiPath,
   endpoint,
-  KRAKEN_API_PUBLIC_KEY,
+  krakenApiPublicKey,
   signature,
   https
 ) => {
   return new Promise((resolve, reject) => {
     const body = apiPostBodyData;
     const options = {
-      hostname: "api.kraken.com",
+      hostname: HOSTNAME,
       port: 443,
       path: `${apiPath}${endpoint}`,
       method: "POST",
       headers: {
-        "API-Key": KRAKEN_API_PUBLIC_KEY,
+        "API-Key": krakenApiPublicKey,
         "API-Sign": signature,
       },
     };
@@ -128,7 +116,7 @@ const executePostRequest = (
     });
 
     req.on("error", (error) => {
-      console.error("error happened", error);
+      LOG_ERROR("error happened", error);
       reject(error);
     });
 
@@ -137,7 +125,7 @@ const executePostRequest = (
   });
 };
 
-const queryPrivateApi = async (endpoint, params) => {
+export const queryPrivateApi = async (endpoint, params) => {
   const nonce = Date.now().toString();
   const apiPostBodyData = "nonce=" + nonce + "&" + params;
 
@@ -161,12 +149,12 @@ const queryPrivateApi = async (endpoint, params) => {
     );
     return JSON.parse(result);
   } catch (e) {
-    console.error(`Could not make successful POST request to ${endpoint}`);
+    LOG_ERROR(`Could not make successful POST request to ${endpoint}`);
     return JSON.parse("{}");
   }
 };
 
-const createAuthenticationSignature = (
+export const createAuthenticationSignature = (
   apiPrivateKey,
   apiPath,
   endPointName,
@@ -184,12 +172,12 @@ const createAuthenticationSignature = (
   return signatureString;
 };
 
-const buyBitcoin = async () => {
+export const buyBitcoin = async () => {
   let buyOrderResponse;
   try {
     buyOrderResponse = await executeBuyOrder();
     if (buyOrderResponse?.error?.length !== 0) {
-      console.error(
+      LOG_ERROR(
         "Buy-Order response had invalid structure! Skipping this buy order."
       );
     } else {
@@ -204,13 +192,13 @@ const buyBitcoin = async () => {
       );
     }
   } catch (e) {
-    console.error(
+    LOG_ERROR(
       "Buy order request failed! Probably a temporary issue with Kraken, if you don't see this error right from the start. Skipping this one."
     );
   }
 };
 
-const executeBuyOrder = async () => {
+export const executeBuyOrder = async () => {
   const privateEndpoint = "AddOrder";
   const privateInputParameters = `pair=xbt${CURRENCY.toLowerCase()}&type=buy&ordertype=market&volume=${KRAKEN_BTC_ORDER_SIZE}`;
   let privateResponse = "";
@@ -221,7 +209,7 @@ const executeBuyOrder = async () => {
   return privateResponse;
 };
 
-const executeWithdrawal = async (amount) => {
+export const executeWithdrawal = async (amount) => {
   const privateEndpoint = "Withdraw";
   const privateInputParameters = `asset=XBT&key=${KRAKEN_WITHDRAWAL_ADDRESS_KEY}&amount=${amount}`;
   let privateResponse = "";
@@ -241,7 +229,7 @@ const isWithdrawalDateDue = () => {
   return false;
 };
 
-const isWithdrawalDue = (btcAmount) =>
+export const isWithdrawalDue = (btcAmount) =>
   (KRAKEN_WITHDRAWAL_ADDRESS_KEY &&
     !WITHDRAW_TARGET &&
     isWithdrawalDateDue()) ||
@@ -249,19 +237,19 @@ const isWithdrawalDue = (btcAmount) =>
     WITHDRAW_TARGET &&
     WITHDRAW_TARGET <= btcAmount);
 
-const fetchBtcFiatPrice = async () =>
+export const fetchBtcFiatPrice = async (cryptoPrefix, fiatPrefix, currency) =>
   Number(
     (
       await queryPublicApi(
         "Ticker",
-        `pair=${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`
+        `pair=${cryptoPrefix}XBT${fiatPrefix}${currency}`
       )
-    )?.result?.[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0]
+    )?.result?.[`${cryptoPrefix}XBT${fiatPrefix}${currency}`]?.p?.[0]
   );
 
 const printInvalidCurrencyError = () => {
   flushLogging();
-  console.error(
+  LOG_ERROR(
     "Probably invalid currency symbol! If this happens at bot startup, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
   );
   if (++interrupted >= 3 && noSuccessfulBuyYet) {
@@ -269,16 +257,16 @@ const printInvalidCurrencyError = () => {
   }
 };
 
-const printInvalidBtcHoldings = () => {
+export const printInvalidBtcHoldings = () => {
   flushLogging();
-  console.error(
+  LOG_ERROR(
     "Couldn't fetch Bitcoin holdings. This is most probably a temporary issue with kraken, that will fix itself."
   );
 };
 
-const printBalanceQueryFailedError = () => {
+export const printBalanceQueryFailedError = () => {
   flushLogging();
-  console.error(
+  LOG_ERROR(
     "Could not query the balance on your account. Either incorrect API key or key-permissions on kraken!"
   );
   if (++interrupted >= 3 && noSuccessfulBuyYet) {
@@ -286,12 +274,12 @@ const printBalanceQueryFailedError = () => {
   }
 };
 
-const withdrawBtc = async (btcAmount) => {
-  console.log(`Attempting to withdraw ${btcAmount} ₿ ...`);
+export const withdrawBtc = async (btcAmount) => {
+  LOG_MSG(`Attempting to withdraw ${btcAmount} ₿ ...`);
   const withdrawal = await executeWithdrawal(btcAmount);
   if (withdrawal?.result?.refid)
-    console.log(`Withdrawal executed! Date: ${new Date().toLocaleString()}!`);
-  else console.error(`Withdrawal failed! ${withdrawal?.error}`);
+    LOG_MSG(`Withdrawal executed! Date: ${new Date().toLocaleString()}!`);
+  else LOG_ERROR(`Withdrawal failed! ${withdrawal?.error}`);
 };
 
 const estimateNextFiatDepositDate = (firstRun) => {
@@ -321,7 +309,7 @@ const evaluateMillisUntilNextOrder = () => {
       myFiatValueInBtc / KRAKEN_BTC_ORDER_SIZE;
 
     if (approximatedAmoutOfOrdersUntilFiatRefill < 1) {
-      console.error(
+      LOG_ERROR(
         `Cannot estimate time for next order. Fiat: ${fiatAmount}, Last BTC price: ${lastBtcFiatPrice}`
       );
     } else {
@@ -333,11 +321,11 @@ const evaluateMillisUntilNextOrder = () => {
       );
     }
   } else {
-    console.error("Last BTC fiat price was not present!");
+    LOG_ERROR("Last BTC fiat price was not present!");
   }
 };
 
-const formatTimeToHoursAndLess = (timeInMillis) => {
+export const formatTimeToHoursAndLess = (timeInMillis) => {
   const hours = timeInMillis / 1000 / 60 / 60;
   const minutes = (timeInMillis / 1000 / 60) % 60;
   const seconds = (timeInMillis / 1000) % 60;
@@ -347,29 +335,42 @@ const formatTimeToHoursAndLess = (timeInMillis) => {
 };
 
 const flushLogging = (printLogs) => {
-  if (printLogs) log(logQueue.join(" > "));
+  if (printLogs) LOG_MSG(logQueue.join(" > "));
   logQueue = [`[${new Date().toLocaleString()}]`];
 };
 
-const timer = (delay) =>
+export const timer = (delay) =>
   new Promise((resolve) => {
     setTimeout(resolve, delay);
   });
 
 const main = async () => {
-  log();
-  log("|===========================================================|");
-  log("|                     ------------------                    |");
-  log("|                     |   Kraken DCA   |                    |");
-  log("|                     ------------------                    |");
-  log("|                        by @codepleb                       |");
-  log("|                                                           |");
-  log("| Donations BTC: bc1q4et8wxhsguz8hsm46pnuvq7h68up8mlw6fhqyt |");
-  log("| Donations Lightning-BTC (Telegram): codepleb@ln.tips      |");
-  log("|===========================================================|");
-  log();
-  log("DCA activated now!");
-  log("Fiat currency to be used:", CURRENCY);
+  LOG_MSG();
+  LOG_MSG("|===========================================================|");
+  LOG_MSG("|                     ------------------                    |");
+  LOG_MSG("|                     |   Kraken DCA   |                    |");
+  LOG_MSG("|                     ------------------                    |");
+  LOG_MSG("|                        by @codepleb                       |");
+  LOG_MSG("|                                                           |");
+  LOG_MSG("| Donations BTC: bc1q4et8wxhsguz8hsm46pnuvq7h68up8mlw6fhqyt |");
+  LOG_MSG("| Donations Lightning-BTC (Telegram): codepleb@ln.tips      |");
+  LOG_MSG("|===========================================================|");
+  LOG_MSG();
+  LOG_MSG("DCA activated now!");
+  LOG_MSG("Fiat currency to be used:", CURRENCY);
+
+  let withdrawalDate = refreshWithdrawalDate();
+  let lastFiatBalance = Number.NEGATIVE_INFINITY;
+  let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
+  let dateOfEmptyFiat = new Date();
+  let dateOfNextOrder = new Date();
+
+  let logQueue = [`[${new Date().toLocaleString()}]`];
+  let firstRun = true;
+  let interrupted = 0;
+  let noSuccessfulBuyYet = true;
+
+  let fiatAmount = undefined;
 
   const runner = async () => {
     while (true) {
@@ -400,7 +401,11 @@ const main = async () => {
           );
         }
 
-        lastBtcFiatPrice = await fetchBtcFiatPrice();
+        lastBtcFiatPrice = await fetchBtcFiatPrice(
+          cryptoPrefix,
+          fiatPrefix,
+          CURRENCY
+        );
         if (!lastBtcFiatPrice) {
           printInvalidCurrencyError();
           await timer(FIAT_CHECK_DELAY);
@@ -444,7 +449,7 @@ const main = async () => {
 
         await timer(FIAT_CHECK_DELAY);
       } catch (e) {
-        console.error("General Error. :/", e);
+        LOG_ERROR("General Error. :/", e);
         await timer(FIAT_CHECK_DELAY);
       }
     }
@@ -454,7 +459,7 @@ const main = async () => {
     await runner();
   } catch (e) {
     flushLogging();
-    console.error("Unhandled error happened. :(");
+    LOG_ERROR("Unhandled error happened. :(");
     throw e;
   }
 };
