@@ -23,6 +23,7 @@ const FIAT_CHECK_DELAY = Number(process.env.FIAT_CHECK_DELAY) || 60 * 1000; // O
 
 const PUBLIC_API_PATH = "/0/public/";
 const PRIVATE_API_PATH = "/0/private/";
+const { log } = console;
 
 export const getPrefixForCurrency = (currency) => {
   if (currency === "USD" || currency === "EUR" || currency === "GBP") {
@@ -31,27 +32,331 @@ export const getPrefixForCurrency = (currency) => {
   return { cryptoPrefix: "", fiatPrefix: "" };
 };
 
-const main = async () => {
-  const { cryptoPrefix, fiatPrefix } = getPrefixForCurrency(CURRENCY);
-
-  const { log } = console;
-
+export const refreshWithdrawalDate = () => {
   const withdrawalDate = new Date();
   withdrawalDate.setDate(1);
   withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
+  return withdrawalDate;
+};
 
-  let lastFiatBalance = Number.NEGATIVE_INFINITY;
-  let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
-  let dateOfEmptyFiat = new Date();
-  let dateOfNextOrder = new Date();
+const { cryptoPrefix, fiatPrefix } = getPrefixForCurrency(CURRENCY);
 
-  let logQueue = [`[${new Date().toLocaleString()}]`];
-  let firstRun = true;
-  let interrupted = 0;
-  let noSuccessfulBuyYet = true;
+let withdrawalDate = refreshWithdrawalDate();
+let lastFiatBalance = Number.NEGATIVE_INFINITY;
+let lastBtcFiatPrice = Number.NEGATIVE_INFINITY;
+let dateOfEmptyFiat = new Date();
+let dateOfNextOrder = new Date();
 
-  let fiatAmount = undefined;
+let logQueue = [`[${new Date().toLocaleString()}]`];
+let firstRun = true;
+let interrupted = 0;
+let noSuccessfulBuyYet = true;
 
+let fiatAmount = undefined;
+
+const isWeekend = (date) => date.getDay() % 6 == 0;
+
+const executeGetRequest = (options) => {
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (d) => {
+        data += d;
+      });
+      res.on("end", () => {
+        resolve(data);
+      });
+    });
+
+    req.on("error", (error) => {
+      console.error(error);
+      reject(error);
+    });
+    req.end();
+  });
+};
+
+const queryPublicApi = async (endPointName, inputParameters) => {
+  const options = {
+    hostname: "api.kraken.com",
+    port: 443,
+    path: `${PUBLIC_API_PATH}${endPointName}?${inputParameters || ""}`,
+    method: "GET",
+  };
+
+  let data = "{}";
+  try {
+    data = await executeGetRequest(options);
+    return JSON.parse(data);
+  } catch (e) {
+    console.error(`Could not make GET request to ${endPointName}`);
+    return JSON.parse("{}");
+  }
+};
+
+const executePostRequest = (
+  apiPostBodyData,
+  apiPath,
+  endpoint,
+  KRAKEN_API_PUBLIC_KEY,
+  signature,
+  https
+) => {
+  return new Promise((resolve, reject) => {
+    const body = apiPostBodyData;
+    const options = {
+      hostname: "api.kraken.com",
+      port: 443,
+      path: `${apiPath}${endpoint}`,
+      method: "POST",
+      headers: {
+        "API-Key": KRAKEN_API_PUBLIC_KEY,
+        "API-Sign": signature,
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+
+      res.on("data", (d) => {
+        data += d;
+      });
+
+      res.on("end", () => {
+        resolve(data);
+      });
+    });
+
+    req.on("error", (error) => {
+      console.error("error happened", error);
+      reject(error);
+    });
+
+    req.write(body);
+    req.end();
+  });
+};
+
+const queryPrivateApi = async (endpoint, params) => {
+  const nonce = Date.now().toString();
+  const apiPostBodyData = "nonce=" + nonce + "&" + params;
+
+  const signature = createAuthenticationSignature(
+    KRAKEN_API_PRIVATE_KEY,
+    PRIVATE_API_PATH,
+    endpoint,
+    nonce,
+    apiPostBodyData
+  );
+
+  let result = "{}";
+  try {
+    result = await executePostRequest(
+      apiPostBodyData,
+      PRIVATE_API_PATH,
+      endpoint,
+      KRAKEN_API_PUBLIC_KEY,
+      signature,
+      https
+    );
+    return JSON.parse(result);
+  } catch (e) {
+    console.error(`Could not make successful POST request to ${endpoint}`);
+    return JSON.parse("{}");
+  }
+};
+
+const createAuthenticationSignature = (
+  apiPrivateKey,
+  apiPath,
+  endPointName,
+  nonce,
+  apiPostBodyData
+) => {
+  const apiPost = nonce + apiPostBodyData;
+  const secret = Buffer.from(apiPrivateKey, "base64");
+  const sha256 = crypto.createHash("sha256");
+  const hash256 = sha256.update(apiPost).digest("binary");
+  const hmac512 = crypto.createHmac("sha512", secret);
+  const signatureString = hmac512
+    .update(apiPath + endPointName + hash256, "binary")
+    .digest("base64");
+  return signatureString;
+};
+
+const buyBitcoin = async () => {
+  let buyOrderResponse;
+  try {
+    buyOrderResponse = await executeBuyOrder();
+    if (buyOrderResponse?.error?.length !== 0) {
+      console.error(
+        "Buy-Order response had invalid structure! Skipping this buy order."
+      );
+    } else {
+      noSuccessfulBuyYet = false;
+      logQueue.push(
+        `Kraken: ${buyOrderResponse?.result?.descr?.order} > Success!`
+      );
+      logQueue.push(
+        `Bought for ~${(lastBtcFiatPrice * KRAKEN_BTC_ORDER_SIZE).toFixed(
+          2
+        )} ${CURRENCY}`
+      );
+    }
+  } catch (e) {
+    console.error(
+      "Buy order request failed! Probably a temporary issue with Kraken, if you don't see this error right from the start. Skipping this one."
+    );
+  }
+};
+
+const executeBuyOrder = async () => {
+  const privateEndpoint = "AddOrder";
+  const privateInputParameters = `pair=xbt${CURRENCY.toLowerCase()}&type=buy&ordertype=market&volume=${KRAKEN_BTC_ORDER_SIZE}`;
+  let privateResponse = "";
+  privateResponse = await queryPrivateApi(
+    privateEndpoint,
+    privateInputParameters
+  );
+  return privateResponse;
+};
+
+const executeWithdrawal = async (amount) => {
+  const privateEndpoint = "Withdraw";
+  const privateInputParameters = `asset=XBT&key=${KRAKEN_WITHDRAWAL_ADDRESS_KEY}&amount=${amount}`;
+  let privateResponse = "";
+  privateResponse = await queryPrivateApi(
+    privateEndpoint,
+    privateInputParameters
+  );
+  return privateResponse;
+};
+
+const isWithdrawalDateDue = () => {
+  if (new Date() > withdrawalDate) {
+    withdrawalDate.setDate(1);
+    withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
+    return true;
+  }
+  return false;
+};
+
+const isWithdrawalDue = (btcAmount) =>
+  (KRAKEN_WITHDRAWAL_ADDRESS_KEY &&
+    !WITHDRAW_TARGET &&
+    isWithdrawalDateDue()) ||
+  (KRAKEN_WITHDRAWAL_ADDRESS_KEY &&
+    WITHDRAW_TARGET &&
+    WITHDRAW_TARGET <= btcAmount);
+
+const fetchBtcFiatPrice = async () =>
+  Number(
+    (
+      await queryPublicApi(
+        "Ticker",
+        `pair=${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`
+      )
+    )?.result?.[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0]
+  );
+
+const printInvalidCurrencyError = () => {
+  flushLogging();
+  console.error(
+    "Probably invalid currency symbol! If this happens at bot startup, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
+  );
+  if (++interrupted >= 3 && noSuccessfulBuyYet) {
+    throw Error("Interrupted! Too many failed API calls.");
+  }
+};
+
+const printInvalidBtcHoldings = () => {
+  flushLogging();
+  console.error(
+    "Couldn't fetch Bitcoin holdings. This is most probably a temporary issue with kraken, that will fix itself."
+  );
+};
+
+const printBalanceQueryFailedError = () => {
+  flushLogging();
+  console.error(
+    "Could not query the balance on your account. Either incorrect API key or key-permissions on kraken!"
+  );
+  if (++interrupted >= 3 && noSuccessfulBuyYet) {
+    throw Error("Interrupted! Too many failed API calls.");
+  }
+};
+
+const withdrawBtc = async (btcAmount) => {
+  console.log(`Attempting to withdraw ${btcAmount} ₿ ...`);
+  const withdrawal = await executeWithdrawal(btcAmount);
+  if (withdrawal?.result?.refid)
+    console.log(`Withdrawal executed! Date: ${new Date().toLocaleString()}!`);
+  else console.error(`Withdrawal failed! ${withdrawal?.error}`);
+};
+
+const estimateNextFiatDepositDate = (firstRun) => {
+  dateOfEmptyFiat = new Date();
+
+  // If 'DATE_OF_CASH_REFILL' is not set, ignore.
+  if (firstRun && !isNaN(DATE_OF_CASH_REFILL)) {
+    dateOfEmptyFiat.setDate(DATE_OF_CASH_REFILL);
+    if (dateOfEmptyFiat.getTime() <= Date.now()) {
+      dateOfEmptyFiat.setMonth(dateOfEmptyFiat.getMonth() + 1);
+    }
+  } else {
+    dateOfEmptyFiat.setMonth(dateOfEmptyFiat.getMonth() + 1);
+  }
+
+  if (isWeekend(dateOfEmptyFiat))
+    dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() - 1);
+  // If first time was SUN, previous day will be SAT, so we have to repeat the check.
+  if (isWeekend(dateOfEmptyFiat))
+    dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() - 1);
+};
+
+const evaluateMillisUntilNextOrder = () => {
+  if (lastBtcFiatPrice > 0) {
+    const myFiatValueInBtc = fiatAmount / lastBtcFiatPrice;
+    const approximatedAmoutOfOrdersUntilFiatRefill =
+      myFiatValueInBtc / KRAKEN_BTC_ORDER_SIZE;
+
+    if (approximatedAmoutOfOrdersUntilFiatRefill < 1) {
+      console.error(
+        `Cannot estimate time for next order. Fiat: ${fiatAmount}, Last BTC price: ${lastBtcFiatPrice}`
+      );
+    } else {
+      const now = Date.now();
+      dateOfNextOrder = new Date(
+        (dateOfEmptyFiat.getTime() - now) /
+          approximatedAmoutOfOrdersUntilFiatRefill +
+          now
+      );
+    }
+  } else {
+    console.error("Last BTC fiat price was not present!");
+  }
+};
+
+const formatTimeToHoursAndLess = (timeInMillis) => {
+  const hours = timeInMillis / 1000 / 60 / 60;
+  const minutes = (timeInMillis / 1000 / 60) % 60;
+  const seconds = (timeInMillis / 1000) % 60;
+  return `${parseInt(hours, 10)}h ${parseInt(minutes, 10)}m ${Math.round(
+    seconds
+  )}s`;
+};
+
+const flushLogging = (printLogs) => {
+  if (printLogs) log(logQueue.join(" > "));
+  logQueue = [`[${new Date().toLocaleString()}]`];
+};
+
+const timer = (delay) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, delay);
+  });
+
+const main = async () => {
   log();
   log("|===========================================================|");
   log("|                     ------------------                    |");
@@ -144,308 +449,6 @@ const main = async () => {
       }
     }
   };
-
-  const isWeekend = (date) => date.getDay() % 6 == 0;
-
-  const executeGetRequest = (options) => {
-    return new Promise((resolve, reject) => {
-      const req = https.request(options, (res) => {
-        let data = "";
-        res.on("data", (d) => {
-          data += d;
-        });
-        res.on("end", () => {
-          resolve(data);
-        });
-      });
-
-      req.on("error", (error) => {
-        console.error(error);
-        reject(error);
-      });
-      req.end();
-    });
-  };
-
-  const queryPublicApi = async (endPointName, inputParameters) => {
-    const options = {
-      hostname: "api.kraken.com",
-      port: 443,
-      path: `${PUBLIC_API_PATH}${endPointName}?${inputParameters || ""}`,
-      method: "GET",
-    };
-
-    let data = "{}";
-    try {
-      data = await executeGetRequest(options);
-      return JSON.parse(data);
-    } catch (e) {
-      console.error(`Could not make GET request to ${endPointName}`);
-      return JSON.parse("{}");
-    }
-  };
-
-  const executePostRequest = (
-    apiPostBodyData,
-    apiPath,
-    endpoint,
-    KRAKEN_API_PUBLIC_KEY,
-    signature,
-    https
-  ) => {
-    return new Promise((resolve, reject) => {
-      const body = apiPostBodyData;
-      const options = {
-        hostname: "api.kraken.com",
-        port: 443,
-        path: `${apiPath}${endpoint}`,
-        method: "POST",
-        headers: {
-          "API-Key": KRAKEN_API_PUBLIC_KEY,
-          "API-Sign": signature,
-        },
-      };
-
-      const req = https.request(options, (res) => {
-        let data = "";
-
-        res.on("data", (d) => {
-          data += d;
-        });
-
-        res.on("end", () => {
-          resolve(data);
-        });
-      });
-
-      req.on("error", (error) => {
-        console.error("error happened", error);
-        reject(error);
-      });
-
-      req.write(body);
-      req.end();
-    });
-  };
-
-  const queryPrivateApi = async (endpoint, params) => {
-    const nonce = Date.now().toString();
-    const apiPostBodyData = "nonce=" + nonce + "&" + params;
-
-    const signature = createAuthenticationSignature(
-      KRAKEN_API_PRIVATE_KEY,
-      PRIVATE_API_PATH,
-      endpoint,
-      nonce,
-      apiPostBodyData
-    );
-
-    let result = "{}";
-    try {
-      result = await executePostRequest(
-        apiPostBodyData,
-        PRIVATE_API_PATH,
-        endpoint,
-        KRAKEN_API_PUBLIC_KEY,
-        signature,
-        https
-      );
-      return JSON.parse(result);
-    } catch (e) {
-      console.error(`Could not make successful POST request to ${endpoint}`);
-      return JSON.parse("{}");
-    }
-  };
-
-  const createAuthenticationSignature = (
-    apiPrivateKey,
-    apiPath,
-    endPointName,
-    nonce,
-    apiPostBodyData
-  ) => {
-    const apiPost = nonce + apiPostBodyData;
-    const secret = Buffer.from(apiPrivateKey, "base64");
-    const sha256 = crypto.createHash("sha256");
-    const hash256 = sha256.update(apiPost).digest("binary");
-    const hmac512 = crypto.createHmac("sha512", secret);
-    const signatureString = hmac512
-      .update(apiPath + endPointName + hash256, "binary")
-      .digest("base64");
-    return signatureString;
-  };
-
-  const buyBitcoin = async () => {
-    let buyOrderResponse;
-    try {
-      buyOrderResponse = await executeBuyOrder();
-      if (buyOrderResponse?.error?.length !== 0) {
-        console.error(
-          "Buy-Order response had invalid structure! Skipping this buy order."
-        );
-      } else {
-        noSuccessfulBuyYet = false;
-        logQueue.push(
-          `Kraken: ${buyOrderResponse?.result?.descr?.order} > Success!`
-        );
-        logQueue.push(
-          `Bought for ~${(lastBtcFiatPrice * KRAKEN_BTC_ORDER_SIZE).toFixed(
-            2
-          )} ${CURRENCY}`
-        );
-      }
-    } catch (e) {
-      console.error(
-        "Buy order request failed! Probably a temporary issue with Kraken, if you don't see this error right from the start. Skipping this one."
-      );
-    }
-  };
-
-  const executeBuyOrder = async () => {
-    const privateEndpoint = "AddOrder";
-    const privateInputParameters = `pair=xbt${CURRENCY.toLowerCase()}&type=buy&ordertype=market&volume=${KRAKEN_BTC_ORDER_SIZE}`;
-    let privateResponse = "";
-    privateResponse = await queryPrivateApi(
-      privateEndpoint,
-      privateInputParameters
-    );
-    return privateResponse;
-  };
-
-  const executeWithdrawal = async (amount) => {
-    const privateEndpoint = "Withdraw";
-    const privateInputParameters = `asset=XBT&key=${KRAKEN_WITHDRAWAL_ADDRESS_KEY}&amount=${amount}`;
-    let privateResponse = "";
-    privateResponse = await queryPrivateApi(
-      privateEndpoint,
-      privateInputParameters
-    );
-    return privateResponse;
-  };
-
-  const isWithdrawalDateDue = () => {
-    if (new Date() > withdrawalDate) {
-      withdrawalDate.setDate(1);
-      withdrawalDate.setMonth(withdrawalDate.getMonth() + 1);
-      return true;
-    }
-    return false;
-  };
-
-  const isWithdrawalDue = (btcAmount) =>
-    (KRAKEN_WITHDRAWAL_ADDRESS_KEY &&
-      !WITHDRAW_TARGET &&
-      isWithdrawalDateDue()) ||
-    (KRAKEN_WITHDRAWAL_ADDRESS_KEY &&
-      WITHDRAW_TARGET &&
-      WITHDRAW_TARGET <= btcAmount);
-
-  const fetchBtcFiatPrice = async () =>
-    Number(
-      (
-        await queryPublicApi(
-          "Ticker",
-          `pair=${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`
-        )
-      )?.result?.[`${cryptoPrefix}XBT${fiatPrefix}${CURRENCY}`]?.p?.[0]
-    );
-
-  const printInvalidCurrencyError = () => {
-    flushLogging();
-    console.error(
-      "Probably invalid currency symbol! If this happens at bot startup, please fix it. If you see this message after a lot of time, it might just be a failed request that will repair itself automatically."
-    );
-    if (++interrupted >= 3 && noSuccessfulBuyYet) {
-      throw Error("Interrupted! Too many failed API calls.");
-    }
-  };
-
-  const printInvalidBtcHoldings = () => {
-    flushLogging();
-    console.error(
-      "Couldn't fetch Bitcoin holdings. This is most probably a temporary issue with kraken, that will fix itself."
-    );
-  };
-
-  const printBalanceQueryFailedError = () => {
-    flushLogging();
-    console.error(
-      "Could not query the balance on your account. Either incorrect API key or key-permissions on kraken!"
-    );
-    if (++interrupted >= 3 && noSuccessfulBuyYet) {
-      throw Error("Interrupted! Too many failed API calls.");
-    }
-  };
-
-  const withdrawBtc = async (btcAmount) => {
-    console.log(`Attempting to withdraw ${btcAmount} ₿ ...`);
-    const withdrawal = await executeWithdrawal(btcAmount);
-    if (withdrawal?.result?.refid)
-      console.log(`Withdrawal executed! Date: ${new Date().toLocaleString()}!`);
-    else console.error(`Withdrawal failed! ${withdrawal?.error}`);
-  };
-
-  const estimateNextFiatDepositDate = (firstRun) => {
-    dateOfEmptyFiat = new Date();
-
-    // If 'DATE_OF_CASH_REFILL' is not set, ignore.
-    if (firstRun && !isNaN(DATE_OF_CASH_REFILL)) {
-      dateOfEmptyFiat.setDate(DATE_OF_CASH_REFILL);
-      if (dateOfEmptyFiat.getTime() <= Date.now()) {
-        dateOfEmptyFiat.setMonth(dateOfEmptyFiat.getMonth() + 1);
-      }
-    } else {
-      dateOfEmptyFiat.setMonth(dateOfEmptyFiat.getMonth() + 1);
-    }
-
-    if (isWeekend(dateOfEmptyFiat))
-      dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() - 1);
-    // If first time was SUN, previous day will be SAT, so we have to repeat the check.
-    if (isWeekend(dateOfEmptyFiat))
-      dateOfEmptyFiat.setDate(dateOfEmptyFiat.getDate() - 1);
-  };
-
-  const evaluateMillisUntilNextOrder = () => {
-    if (lastBtcFiatPrice > 0) {
-      const myFiatValueInBtc = fiatAmount / lastBtcFiatPrice;
-      const approximatedAmoutOfOrdersUntilFiatRefill =
-        myFiatValueInBtc / KRAKEN_BTC_ORDER_SIZE;
-
-      if (approximatedAmoutOfOrdersUntilFiatRefill < 1) {
-        console.error(
-          `Cannot estimate time for next order. Fiat: ${fiatAmount}, Last BTC price: ${lastBtcFiatPrice}`
-        );
-      } else {
-        const now = Date.now();
-        dateOfNextOrder = new Date(
-          (dateOfEmptyFiat.getTime() - now) /
-            approximatedAmoutOfOrdersUntilFiatRefill +
-            now
-        );
-      }
-    } else {
-      console.error("Last BTC fiat price was not present!");
-    }
-  };
-
-  const formatTimeToHoursAndLess = (timeInMillis) => {
-    const hours = timeInMillis / 1000 / 60 / 60;
-    const minutes = (timeInMillis / 1000 / 60) % 60;
-    const seconds = (timeInMillis / 1000) % 60;
-    return `${parseInt(hours, 10)}h ${parseInt(minutes, 10)}m ${Math.round(
-      seconds
-    )}s`;
-  };
-
-  const flushLogging = (printLogs) => {
-    if (printLogs) log(logQueue.join(" > "));
-    logQueue = [`[${new Date().toLocaleString()}]`];
-  };
-
-  const timer = (delay) =>
-    new Promise((resolve) => {
-      setTimeout(resolve, delay);
-    });
 
   try {
     await runner();
