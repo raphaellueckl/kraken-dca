@@ -112,6 +112,7 @@ const main = async () => {
         //  x  ===  x   x   x   x  ===  x
         if (dateOfNextOrder < now || newFiatArrived) {
           await buyBitcoin(logQueue);
+          lastFiatBalance = fiatAmount;
           evaluateMillisUntilNextOrder();
           buyOrderExecuted = true;
         }
