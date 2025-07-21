@@ -15,8 +15,6 @@ If this is worth something to you, feel free to throw me some Sats:
 
 Bitcoin Mainnet: `bc1q4et8wxhsguz8hsm46pnuvq7h68up8mlw6fhqyt`
 
-Bitcoin Lightning (telegram): `codepleb@ln.tips`
-
 PayPal:
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/paypalme/codepleb/2)
@@ -161,5 +159,3 @@ Answer: It's not possible because of (IMHO unnecessary) complexity and also beca
 ## Stay up to date!
 
 Discord channel for news and updates: https://discord.gg/TARdDh4hN8
-
-Also feel free to contact me on telegram: @codepleb
